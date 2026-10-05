@@ -1,7 +1,7 @@
 # FitLab: Upload existing clothing and outfits
 
-Status: Draft — pending team review.
-Named team approver: Pending.
+Status: Draft — Under review.
+Named team approver: Patrick
 
 ## Purpose
 

@@ -1,7 +1,7 @@
 # FitLab: Generate outfit ideas
 
-Status: Draft — pending team review.
-Named team approver: Pending.
+Status: Draft — under review.
+Named team approver: Gabriel.
 
 ## Purpose
 

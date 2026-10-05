@@ -1,7 +1,7 @@
 # FitLab: Critique the generated looks
 
-Status: Draft — pending team review.
-Named team approver: Pending.
+Status: Draft — Under review.
+Named team approver: Patrick.
 
 ## Purpose
 

@@ -1,7 +1,7 @@
 # FitLab: Personal accounts
 
-Status: Draft — pending team review.
-Named team approver: Pending.
+Status: Draft — Under review.
+Named team approver: Gabriel
 
 ## Purpose
 

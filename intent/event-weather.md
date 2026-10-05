@@ -1,7 +1,7 @@
 # FitLab: Use weather for the event
 
-Status: Draft — pending team review.
-Named team approver: Pending.
+Status: Draft — under review.
+Named team approver: Nadia.
 
 ## Purpose
 

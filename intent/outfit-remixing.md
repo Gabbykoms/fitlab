@@ -1,7 +1,7 @@
 # FitLab: Combine and refine outfits
 
-Status: Draft — pending team review.
-Named team approver: Pending.
+Status: Draft — Under review.
+Named team approver: Nadia.
 
 ## Purpose
 
