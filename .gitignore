@@ -1,0 +1,17 @@
+.claude/settings.local.json
+.env
+.venv/
+
+# SQLite database and its WAL sidecar files (spec.md SEC-9)
+*.db
+*.db-wal
+*.db-shm
+
+# User uploads and generated renders (spec.md SEC-9)
+uploads/
+renders/
+
+# Python build and test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
