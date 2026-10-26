@@ -12,7 +12,7 @@ assignment. Per-attempt cost data is logged by `critique.py` and
 
 ---
 
-## Test milestone — critique validator and scorer (this commit)
+## Test milestone — critique validator and scorer (commit `46449a2`)
 
 The Test milestone is `tests/test_critique.py`: parsing, schema
 validation, weighted overall, and retry trigger — all the work the
@@ -167,11 +167,133 @@ Requires no API key. No network requests are made.
 
 ---
 
+## Front-end milestone — Playwright browser check (`feature/frontend`)
+
+The browser check is `tests/test_browser.py`: 20 Playwright tests that
+drive headless Chromium through the front end. The file lives on branch
+`feature/frontend`, and the run below is against commit `6eae562`
+("docs: README overview and FE-12 polling pause/resume"), the tip of
+that branch at the time of the run.
+
+The suite starts `dev_server.py` itself — an in-memory stand-in for the
+`spec.md` §3.1 API — on a free port, waits for `/api/health`, and points
+Chromium at it. `dev_server.py` holds no keys and makes no network
+calls, so the suite needs no `OPENROUTER_API_KEY` and no network access.
+
+### Green run — commit `6eae562` on `feature/frontend`
+
+Command (run with the project's `.venv`, from a scratch checkout of
+`feature/frontend`; the `rootdir` line below is that scratch path, and
+the checkout was deleted after the run):
+
+```
+.venv/Scripts/python.exe -m pytest tests/test_browser.py
+```
+
+Output:
+
+```
+============================= test session starts =============================
+platform win32 -- Python 3.14.1, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\nadia\cpsc415\.fitlab-browser-run
+plugins: anyio-4.15.1, playwright-0.10.0
+collected 20 items
+
+tests\test_browser.py ....................                               [100%]
+
+======================== 20 passed in 61.93s (0:01:01) ========================
+```
+
+An earlier run of the same suite against the same commit on the same
+machine reported `20 passed in 52.60s`. Both runs collected and passed
+the same 20 tests.
+
+Cost of this run: $0. No model was called.
+
+### What the 20 tests prove
+
+**Key isolation — spec.md §5 SEC-2. Three tests.** Every file under
+`static/` (`.html`, `.js`, `.css`) is scanned for provider and key
+strings — `openrouter`, `OPENROUTER_API_KEY`, `api_key`, `Bearer`,
+`google/gemini`, `xiaomi/`, `minimax/`, `openai/`, `anthropic/` — and
+none of them is present. The same strings are checked in the three
+assets the server actually serves (`/`, `/app.js`, `/style.css`). A
+third test records every request the page makes during a full
+sign-up → upload → generate flow and asserts that each one is
+same-origin (or a local `data:` / `blob:` preview) and that no
+`/api/*` request carries an `Authorization` header.
+
+**Authentication — two tests.** A signed-out visitor sees the auth
+dialog, the wardrobe and results panels stay hidden, and the server
+answers `GET /api/wardrobe` with 401. A wrong password shows the plain
+sentence "That username and password do not match." and does not leak a
+status code.
+
+**Brief and wardrobe — four tests.** Generate stays disabled until the
+brief is complete, and is disabled again once the event date is in the
+past; the location line names the city that was typed; the upload rule
+is shown and a photo labelled "person" is rejected with a message saying
+so, leaving no wardrobe item; a selected piece is echoed in the brief.
+
+**Results and critique display — five tests.** Three option cards render
+with an overall score, an attempt log and a piece list; an unassessed
+dimension reads "Not assessed" and never "0%", and the weather readout
+says "without weather guidance" when the city is `nowhere`; an option
+that used up its retries shows the unresolved banner and three
+attempt-log entries; a failed critique is disclosed in words and shows
+no score; a failed job shows a sentence, not a status code or a JSON
+body.
+
+**Remix, saved looks, layout — four tests.** Remix stays disabled until
+pieces from two different options are chosen, then adds a revision card;
+a saved look can be filtered by occasion and deleted; the page has no
+horizontal overflow at 360 px.
+
+**Regressions from the code review — three tests.** Generate stays
+disabled while a job is running; signing out mid-job leaves no stale
+results and no "NaN"; revisions keep their saved state and survive a
+new generate.
+
+### What this run does not prove
+
+The suite runs against `dev_server.py`, a stand-in that returns fake
+images and fake critiques and makes no model calls. It exercises the
+whole front end without the real server, and it proves the browser code
+does not reach for a key or a provider endpoint. It does not exercise
+the real backend: `app.py`, `db.py`, `weather.py`, `generator.py` and
+`critique.py` are never started, no OpenRouter call is made, no SQLite
+row is written and no weather lookup happens. The key-isolation
+assertions are therefore assertions about the browser code and the shape
+of the stub API; the same check has to be re-run against `app.py` once
+it lands — with a real `OPENROUTER_API_KEY` in the server environment —
+to show that the key stays off the browser side of the real server too.
+
+One requested test is still missing. FE-12 says polling pauses while
+the page is hidden for more than 60 seconds and resumes when the page
+is visible again. The behaviour is implemented in `static/js/jobs.js`
+(`HIDDEN_LIMIT_MS`), and a separate review pass over the front end
+(`REVIEW.md`, produced by another agent and not committed) found no
+blocking issues and asked for a test covering the pause and the resume.
+No test covers it yet, so the suite does not check it.
+
+### How to reproduce
+
+```
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r requirements.txt
+.venv/Scripts/python.exe -m playwright install chromium
+.venv/Scripts/python.exe -m pytest tests/test_browser.py
+```
+
+Check out `feature/frontend` first. Requires no API key and no network
+access.
+
+---
+
 ## Pending — not yet runnable
 
-These rows are recorded here so the milestone is honest about what has
-not been verified. They are filled in when the underlying component
-exists.
+The eval entry is recorded here so this ledger is honest about what has
+not been verified. It is filled in when the underlying component exists.
 
 ### Pending — vision critique evaluation (`eval.py`)
 
@@ -187,25 +309,8 @@ to critique. None have been produced yet — `generator.py` is not
 implemented. Running `eval.py` against critique-only output would not
 exercise the upload-fidelity dimension or the retry loop, which are
 the parts the cheap-vs-strong comparison is meant to evaluate. The
-entry will appear here once at least one generated outfit has been
-produced through the end-to-end generate → critique → retry pipeline.
-
-### Pending — Playwright browser check (`tests/test_browser.py`)
-
-`tests/test_browser.py` runs headless Chromium through the application
-and asserts the central architectural property: every external request
-leaves the server, none leaves the browser. No `Authorization` header
-appears in the browser network trace. No `openrouter.ai` request is
-made from `static/app.js`. Every outbound browser request targets
-`/api/*`.
-
-**Status: pending.** The browser test also asserts that the three
-outfit cards render, that the critique breakdown badges appear on each
-card, and that the request inspection confirms the multimodal payload
-contains an `image_url` part for the generated image. None of these
-assertions can be checked because `static/index.html` and
-`static/app.js` do not exist yet — the front end is the next
-milestone. The entry will appear here once the front end exists and
-can serve a generated outfit with its critique to the browser; the
-test will adapt the course's `test_browser.py` to assert generate,
-display, and critique appear.
+browser check above does not change this: it drives the front end
+against the fake outfits in `dev_server.py`, and the eval needs real
+generated images. The entry will appear here once at least one generated
+outfit has been produced through the end-to-end generate → critique →
+retry pipeline.
