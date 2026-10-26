@@ -1,0 +1,95 @@
+/* Fonts, reset, typography, form controls and buttons. */
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("/fonts/plex-sans-400.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("/fonts/plex-sans-500.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("/fonts/plex-sans-600.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("/fonts/plex-mono-400.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-display: swap; src: url("/fonts/plex-mono-500.woff2") format("woff2"); }
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  -webkit-font-smoothing: antialiased;
+}
+img { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+ul { list-style: none; padding: 0; }
+
+.mono { font-family: var(--font-mono); letter-spacing: 0.01em; }
+.noscript { padding: var(--s5); font-family: var(--font-mono); }
+
+/* ---- Form fields ---- */
+.field { display: grid; gap: var(--s1); border: 0; padding: 0; min-width: 0; }
+.field + .field, .field-row + .field, .field + .field-row { margin-top: var(--s3); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); align-items: end; }
+.field-row > .field { margin-top: 0; }
+.field-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  padding: 0;
+}
+.optional { text-transform: none; letter-spacing: 0; color: var(--ink-3); }
+
+input[type=text], input[type=password], input[type=date], input[type=time], select, textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+textarea { resize: vertical; }
+input:hover, select:hover, textarea:hover { border-color: var(--hairline-strong); }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+input[aria-invalid=true] { border-color: var(--danger); }
+
+.hint { font-size: var(--text-sm); color: var(--ink-3); }
+.hint.mono { font-size: var(--text-xs); }
+.hint-error { color: var(--danger); min-height: 1.2em; }
+.hint-error:empty { min-height: 0; }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.btn:disabled { cursor: not-allowed; opacity: 0.45; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
+.btn-ghost { background: transparent; border-color: var(--hairline); color: var(--ink); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--ink-2); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-small { padding: 4px 10px; font-size: var(--text-sm); }
+.btn-block { width: 100%; margin-top: var(--s3); padding: 11px 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

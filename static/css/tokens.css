@@ -1,0 +1,51 @@
+/* Design tokens: light "lab notebook" theme (spec.md §3.6 Visual design). */
+:root {
+  /* Surfaces */
+  --paper: #F7F7F4;
+  --panel: #FFFFFF;
+  --panel-sunk: #FBFBF8;
+  --grid-line: rgba(17, 17, 17, 0.045);
+  --hairline: #D9D9D2;
+  --hairline-strong: #BDBDB4;
+
+  /* Ink */
+  --ink: #111111;
+  --ink-2: #4A4A45;
+  --ink-3: #7A7A72;
+
+  /* Signal colors */
+  --accent: #0E8C8C;
+  --accent-strong: #0A6E6E;
+  --accent-soft: #E3F2F1;
+  --warn: #B7791F;
+  --warn-soft: #FBF3E4;
+  --danger: #B42318;
+  --danger-soft: #FCECEA;
+
+  /* Type */
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --text-xs: 0.72rem;
+  --text-sm: 0.84rem;
+  --text-md: 0.95rem;
+  --text-lg: 1.15rem;
+  --text-xl: 2.4rem;
+
+  /* Space & shape */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --grid-size: 24px;
+  --controls-width: 380px;
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+  --shadow-float: 0 12px 40px rgba(17, 17, 17, 0.12);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 180ms;
+}
