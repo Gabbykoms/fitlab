@@ -16,7 +16,12 @@
 | `critique.py` | Multimodal vision critique service using OpenRouter vision models to inspect generated images, check brief compliance & uploaded clothing fidelity, produce scores with explanations, and trigger auto-retries (max 2). Models: `xiaomi/mimo-v2.6-flash` (cheap) and `minimax/minimax-m3` (strong); both accept image input. Every MiMo call must send `reasoning: {"enabled": false}`, otherwise the reasoning trace precedes the JSON and the response will not parse. The critique JSON contract in `spec.md` §7 is normative for `tests/test_critique.py`. *Amended 2026-10-25: `openai/gpt-4o-mini` and `minimax/minimax-01` were the originally named models; `openai/gpt-4o-mini` is retained as an eval comparison point only.* |
 | `static/index.html` | Single-page application structure: navigation, account auth dialog, wardrobe upload tray, occasion & weather prompt panel, 3-option outfit showcase, remix editor, and saved looks drawer. |
 | `static/app.js` | Frontend controller managing DOM updates, image uploads, remix piece selection, polling/rendering generation results, and error notifications without holding API credentials. |
-| `static/style.css` | Responsive styling, grid layout for the 3 outfit cards, critique breakdown badges, score indicators, and upload preview containers. |
+| `static/style.css` | Responsive styling, grid layout for the 3 outfit cards, critique breakdown badges, score indicators, and upload preview containers. *Amended 2026-10-26: now an entry point that `@import`s `static/css/{tokens,base,layout,components}.css`.* |
+| `static/js/*.js` | *Added 2026-10-26.* Native ES modules that `static/app.js` imports, with no build step: `api`, `state`, `dom`, `toast`, `auth`, `wardrobe`, `brief`, `jobs`, `scores`, `results`, `remix`, `saved`. Keeps every file under 400 lines. |
+| `static/css/*.css` | *Added 2026-10-26.* Design tokens (light lab-notebook theme, teal accent), base and typography, the split-workbench layout, and components. See `spec.md` §3.6 "Visual design". |
+| `static/fonts/` | *Added 2026-10-26.* Self-hosted IBM Plex Sans and IBM Plex Mono woff2 files plus their OFL license. Self-hosted because SEC-2 forbids CDN requests. |
+| `dev_server.py` | *Added 2026-10-26.* A dev-only in-memory stub of the `spec.md` §3.1 API. It returns fake images and critiques shaped like §7 and has keyword-triggered edge cases. Used to build the front end before `app.py` exists, and as the stub provider for `tests/test_browser.py`. Holds no keys and makes no network calls. |
+| `requirements.txt` | *Added 2026-10-26.* `fastapi`, `uvicorn`, `python-multipart`, `pytest`, `pytest-playwright`. |
 | `tests/test_weather.py` | Unit tests for weather resolution: coordinates lookup, city override, out-of-range forecast handling, and missing-weather fallback (requires no API key). |
 | `tests/test_db.py` | Unit tests for the data layer: ownership isolation (user A cannot read user B's rows), password hashing, session expiry, idempotent schema creation, duplicate-username handling, and the saved-look round trip (requires no API key). |
 | `tests/test_critique.py` | Unit tests for critique payload parser, rubric scoring calculation, mismatch detection, retry triggers, and uncertainty disclosure (requires no API key). |
@@ -37,6 +42,18 @@
   - A vision critique might continually flag minor aesthetic discrepancies, triggering repeated generation calls and draining API credits. We address this by: (1) enforcing a strict hard limit of at most two automatic retries per option (maximum 3 generation attempts total); (2) requiring a threshold score below 70% or an explicit mismatch flag before triggering a retry; (3) logging token usage and cost per attempt; and (4) if mismatches persist after 2 retries, halting generation and presenting the best option alongside an honest disclosure of unresolved issues.
 - **"How do we enforce the course policy prohibiting images of real people?"**
   - The UI and upload specifications explicitly restrict uploads to clothing-only photos (flat-lays or hangers). On upload, a lightweight vision pre-flight filter verifies no human faces or bodies are present before saving to the wardrobe. Generated looks explicitly specify "displayed on a neutral, fictional mannequin with no human facial features or identity" in their generation prompts.
+
+## Front-end decisions (answered by Patrick, 2026-10-26)
+- **Theme:** light lab notebook (paper and grid background, ink text) with a lab-teal accent. The lab metaphor stays subtle and lives in the visuals; labels use plain words.
+- **Layout:** split workbench, with a controls column on the left, results and remix on the right, and saved looks in a drawer.
+- **Scores:** a mono overall readout plus a bar gauge for each dimension, with a tick at the 70 retry threshold. Unassessed dimensions are drawn as hatched "Not assessed" bars.
+- **Attempt log:** collapsible, one row per entry in `critique_history`.
+- **Critique model:** server default only, with no UI toggle.
+- **Remix revisions:** a session-only revisions strip.
+- **Saved looks:** view and delete, with no rename.
+- **Motion:** subtle scan shimmer while jobs run, respecting reduced motion.
+- **Build approach:** the front end is built on branch `feature/frontend` against `dev_server.py` until `app.py` lands.
+- **Front-end testing:** Playwright through pytest only (`tests/test_browser.py`).
 
 ## Order of work
 1. **Core Scaffolding & Specifications (`spec.md`, `CLAUDE.md`, `db.py`, `app.py`):**
