@@ -39,11 +39,11 @@ export function show(el, visible = true) {
   el.hidden = !visible;
 }
 
-/** Only allow image sources the app itself produced: same-origin paths, data: or blob: URLs. */
+/** Only allow base64 image data URLs or local blob: previews; never a URL the browser would fetch. */
 export function safeImageSrc(src) {
   if (typeof src !== "string") return "";
   if (/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,/i.test(src)) return src;
-  if (src.startsWith("blob:") || (src.startsWith("/") && !src.startsWith("//"))) return src;
+  if (src.startsWith(`blob:${window.location.origin}/`)) return src;
   return "";
 }
 

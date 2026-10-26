@@ -124,7 +124,6 @@
 .chosen-list:empty::before { content: "No pieces chosen yet."; font-size: var(--text-sm); color: var(--ink-3); }
 .chosen-list li { display: inline-flex; gap: 6px; align-items: center; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); border: 1px solid var(--accent); font-size: var(--text-xs); }
 #remix-btn { margin-top: var(--s3); }
-.revisions { margin-top: var(--s5); }
 .revisions-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 300px); gap: var(--s3); overflow-x: auto; padding-bottom: var(--s2); }
 
 /* ---- Saved drawer ---- */

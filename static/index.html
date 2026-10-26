@@ -116,10 +116,11 @@
                     placeholder="e.g. Keep the trousers, swap the jacket."></textarea>
         </label>
         <button type="button" class="btn btn-primary" id="remix-btn" disabled>Generate remix</button>
-        <div class="revisions" id="revisions-wrap" hidden>
-          <h3 class="panel-label mono"><span>04.1</span> / Revisions · this session</h3>
-          <div class="revisions-strip" id="revisions"></div>
-        </div>
+      </section>
+
+      <section class="panel" id="revisions-wrap" aria-labelledby="revisions-title" hidden>
+        <h2 class="panel-label mono" id="revisions-title"><span>05</span> / Revisions · this session</h2>
+        <div class="revisions-strip" id="revisions"></div>
       </section>
 
       <section class="empty-state" id="empty-state">
@@ -130,7 +131,7 @@
     </div>
   </main>
 
-  <aside class="drawer" id="saved-drawer" aria-labelledby="saved-title" hidden>
+  <aside class="drawer" id="saved-drawer" role="dialog" aria-modal="true" aria-labelledby="saved-title" hidden>
     <div class="drawer-head">
       <h2 class="panel-label mono" id="saved-title"><span>◫</span> / Saved looks</h2>
       <button type="button" class="btn btn-ghost btn-small" id="close-saved" aria-label="Close saved looks">Close</button>

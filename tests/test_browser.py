@@ -271,3 +271,51 @@ def test_usable_at_360px(page: Page, server_url):
     sign_up(page, server_url)
     overflow = page.evaluate("document.documentElement.scrollWidth > window.innerWidth")
     assert not overflow
+
+
+# ---- regressions from code review ---------------------------------------------------
+
+def test_generate_stays_disabled_while_job_runs(page: Page, server_url):
+    sign_up(page, server_url)
+    fill_brief(page)
+    page.click("#generate-btn")
+    page.fill("#notes", "typing during a job must not re-enable Generate")
+    expect(page.locator("#generate-btn")).to_be_disabled()
+    expect(page.locator("#job-status")).to_contain_text("complete", timeout=JOB_TIMEOUT_MS)
+    expect(page.locator("#generate-btn")).to_be_enabled()
+
+
+def test_sign_out_mid_job_leaves_no_stale_results(page: Page, server_url):
+    sign_up(page, server_url)
+    fill_brief(page)
+
+    held = []  # hold the generate POST so sign-out happens while it is in flight
+    page.route("**/api/outfits/generate", lambda route: held.append(route))
+    page.click("#generate-btn")
+    page.wait_for_function("document.querySelector('#generate-btn').textContent.includes('Generating')")
+    page.click("#logout-btn")
+    expect(page.locator("#auth-dialog")).to_be_visible()
+    assert held, "generate request was not intercepted"
+    held[0].continue_()
+    page.wait_for_timeout(3000)  # the late 202 and any leaked poll would land in this window
+    expect(page.locator("#toasts")).not_to_contain_text("Please sign in again")
+    sign_up(page, server_url)
+    expect(page.locator("#results-panel")).to_be_hidden()
+    expect(page.locator("#job-status")).not_to_contain_text("NaN")
+
+
+def test_revisions_keep_saved_state_and_survive_new_generate(page: Page, server_url):
+    sign_up(page, server_url)
+    generate(page)
+    page.locator(".option-card").first.locator(".piece").first.click()
+    page.click("#remix-btn")
+    first = page.locator("#revisions .option-card").first
+    expect(first.locator("button.save-look")).to_be_visible(timeout=JOB_TIMEOUT_MS)
+    first.locator("button.save-look").click()
+    expect(first.locator("button.save-look")).to_have_text("Saved ✓")
+    page.click("#remix-btn")  # a second remix polls while the first card is on screen
+    expect(page.locator("#revisions .option-card")).to_have_count(2)
+    page.wait_for_timeout(2500)
+    expect(page.locator("#revisions .option-card").first.locator("button.save-look")).to_have_text("Saved ✓")
+    page.click("#generate-btn")
+    expect(page.locator("#revisions-wrap")).to_be_visible()

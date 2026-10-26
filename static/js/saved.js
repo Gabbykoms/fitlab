@@ -3,7 +3,7 @@
 import { api } from "./api.js";
 import { $, h, replace, safeImageSrc, show } from "./dom.js";
 import { MAX_ATTEMPTS, critiqueFailed, failedNotice, gauges, overallBlock } from "./scores.js";
-import { update, watch } from "./state.js";
+import { currentEpoch, update, watch } from "./state.js";
 import { toast } from "./toast.js";
 
 function filters() {
@@ -19,7 +19,9 @@ export async function loadSaved() {
   if (f.from_date && f.to_date && f.from_date > f.to_date) {
     return toast("The “from” date must be on or before the “to” date.", "error");
   }
+  const epoch = currentEpoch();
   const result = await api.looks(f);
+  if (epoch !== currentEpoch()) return;
   if (!result.ok) return toast(result.message, "error");
   update(() => ({ saved: result.data?.looks ?? [] }));
 }
@@ -48,15 +50,20 @@ async function remove(look) {
   if (!result.ok) return toast(result.message, "error");
   update((s) => ({ saved: s.saved.filter((x) => x.id !== look.id) }));
   toast("Look deleted.", "success");
+  $("#filter-occasion").focus();
 }
 
 function deleteControls(look) {
   const wrap = h("span", { class: "saved-actions" });
-  const ask = () => replace(wrap,
-    h("button", { type: "button", class: "btn btn-danger btn-small confirm-delete", onclick: () => remove(look) }, "Confirm delete"),
-    h("button", { type: "button", class: "btn btn-ghost btn-small", onclick: reset }, "Cancel"));
-  function reset() {
-    replace(wrap, h("button", { type: "button", class: "btn btn-ghost btn-small delete-look", onclick: ask }, "Delete"));
+  const ask = () => {
+    const confirm = h("button", { type: "button", class: "btn btn-danger btn-small confirm-delete", onclick: () => remove(look) }, "Confirm delete");
+    replace(wrap, confirm, h("button", { type: "button", class: "btn btn-ghost btn-small", onclick: () => reset(true) }, "Cancel"));
+    confirm.focus();
+  };
+  function reset(focus = false) {
+    const del = h("button", { type: "button", class: "btn btn-ghost btn-small delete-look", onclick: ask }, "Delete");
+    replace(wrap, del);
+    if (focus) del.focus();
   }
   reset();
   return wrap;
@@ -82,16 +89,30 @@ function savedItem(look) {
     holder);
 }
 
+// The drawer is modal: the page behind it is made inert so Tab stays inside it.
+const BACKGROUND = [".topbar", ".workbench"];
+let opener = null;
+
+function setBackgroundInert(inert) {
+  BACKGROUND.forEach((selector) => { $(selector).inert = inert; });
+}
+
 function openDrawer() {
+  opener = document.activeElement;
   show($("#saved-drawer"), true);
   show($("#scrim"), true);
+  setBackgroundInert(true);
   loadSaved();
   $("#close-saved").focus();
 }
 
 export function closeDrawer() {
+  if ($("#saved-drawer").hidden) return;
   show($("#saved-drawer"), false);
   show($("#scrim"), false);
+  setBackgroundInert(false);
+  if (opener?.isConnected && !opener.closest("[hidden]")) opener.focus();
+  opener = null;
 }
 
 export function initSaved() {

@@ -2,7 +2,7 @@
 // rejection reasons, selection, delete (FE-8 to FE-11).
 import { api } from "./api.js";
 import { $, h, replace, safeImageSrc } from "./dom.js";
-import { update, watch } from "./state.js";
+import { currentEpoch, update, watch } from "./state.js";
 import { toast } from "./toast.js";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -61,7 +61,9 @@ async function sendUpload(file, category, label, errorEl) {
   form.append("file", file);
   form.append("category", category);
   if (label) form.append("label", label);
+  const epoch = currentEpoch();
   const result = await api.upload(form);
+  if (epoch !== currentEpoch()) return false; // signed out meanwhile; the row is already cleared
   if (!result.ok) {
     errorEl.textContent = result.message;
     return false;
@@ -89,7 +91,9 @@ function toggleSelected(id) {
 }
 
 async function removeItem(item) {
+  const epoch = currentEpoch();
   const result = await api.deleteItem(item.id);
+  if (epoch !== currentEpoch()) return;
   if (!result.ok) return toast(result.message, "error");
   update((s) => ({
     wardrobe: s.wardrobe.filter((x) => x.id !== item.id),
@@ -111,7 +115,12 @@ function itemTile(item, selected) {
 }
 
 function render(state) {
-  replace($("#wardrobe-grid"), state.wardrobe.map((item) => itemTile(item, state.selectedItemIds.includes(item.id))));
+  const grid = $("#wardrobe-grid");
+  // Re-rendering replaces the tiles, so restore keyboard focus to the same item.
+  const focusedId = grid.contains(document.activeElement)
+    ? document.activeElement.closest(".wardrobe-item")?.dataset.id : null;
+  replace(grid, state.wardrobe.map((item) => itemTile(item, state.selectedItemIds.includes(item.id))));
+  if (focusedId) $(`.wardrobe-item[data-id="${CSS.escape(focusedId)}"] .select-toggle`, grid)?.focus();
 }
 
 export async function loadWardrobe() {

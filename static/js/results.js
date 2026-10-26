@@ -5,60 +5,77 @@ import { letterFor, optionCard, pendingCard, weatherReadout } from "./cards.js";
 import { $, formatElapsed, h, replace, show } from "./dom.js";
 import { pollJob } from "./jobs.js";
 import { isChosen, togglePiece } from "./remix.js";
-import { getState, update, watch } from "./state.js";
+import { currentEpoch, getState, update, watch } from "./state.js";
 import { toast } from "./toast.js";
 
 const OPTION_COUNT = 3;
 const PARTIAL_MESSAGE = "One of the three outfit ideas could not be drawn. The other two are ready.";
 let cancelPoll = () => {};
 let ticker = null;
+let generation = 0; // bumped per submit; stale responses and poll callbacks compare against it
 
-const setJob = (patch) => update((s) => ({ job: { ...s.job, ...patch } }));
+/** Patch the current job only if it is still the generation (and session) that asked. */
+function guardedSetJob(token, patch) {
+  if (!isCurrent(token)) return false;
+  update((s) => (s.job ? { job: { ...s.job, ...patch } } : {}));
+  return true;
+}
+
+const isCurrent = (token) => token.generation === generation && token.epoch === currentEpoch();
 
 export async function startGenerate(brief) {
   cancelPoll();
+  generation += 1;
+  const token = { generation, epoch: currentEpoch() };
   update(() => ({
     job: { id: null, status: "submitting", startedAt: Date.now(), brief, options: [], weather: null, error: null },
     remixChoice: [],
   }));
   setGenerating(true);
   const result = await api.generate(brief);
+  if (!isCurrent(token)) return;
   if (!result.ok) {
     setGenerating(false);
-    setJob({ status: "failed", error: result.message });
-    return toast(result.message, "error");
+    guardedSetJob(token, { status: "failed", error: result.message });
+    if (result.status !== 401) toast(result.message, "error");
+    return;
   }
-  setJob({ id: result.data.job_id, status: result.data.status ?? "queued" });
+  guardedSetJob(token, { id: result.data.job_id, status: result.data.status ?? "queued" });
   cancelPoll = pollJob(result.data.job_id, {
-    onProgress: (data) => setJob({ status: data.status, weather: data.weather ?? null }),
+    onProgress: (data) => guardedSetJob(token, { status: data.status, weather: data.weather ?? null }),
     onDone: (data) => {
+      if (!isCurrent(token)) return;
       setGenerating(false);
-      setJob({ status: data.status, options: Array.isArray(data.options) ? data.options : [],
+      guardedSetJob(token, { status: data.status, options: Array.isArray(data.options) ? data.options : [],
         weather: data.weather ?? null, error: data.error ?? null });
       if (data.status === "failed") toast(data.error || "The outfits could not be generated. Please try again.", "error");
       else if (data.options?.length && data.options.length < OPTION_COUNT) toast(PARTIAL_MESSAGE);
     },
     onError: (message) => {
+      if (!isCurrent(token)) return;
       setGenerating(false);
-      setJob({ status: "failed", error: message });
+      guardedSetJob(token, { status: "failed", error: message });
       toast(message, "error");
     },
   });
 }
 
 export function cancelGeneration() {
+  generation += 1;
   cancelPoll();
+  cancelPoll = () => {};
   clearInterval(ticker);
   setGenerating(false);
 }
 
 function statusText(job) {
+  if (!job) return "";
   const elapsed = formatElapsed(Date.now() - job.startedAt);
   switch (job.status) {
     case "submitting": return `submitting · ${elapsed}`;
     case "queued": return `queued · ${elapsed}`;
     case "running": return `running · generate → critique → retry · ${elapsed}`;
-    case "complete": return `complete · ${job.options.length} options · ${elapsed}`;
+    case "complete": return `complete · ${job.options?.length ?? 0} options · ${elapsed}`;
     case "failed": return "failed";
     default: return "";
   }
@@ -93,6 +110,7 @@ function renderOptions(job) {
 
 function render(job, previous) {
   if (!job) {
+    clearInterval(ticker);
     show($("#results-panel"), false);
     show($("#remix-panel"), false);
     show($("#empty-state"), true);

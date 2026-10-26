@@ -15,14 +15,19 @@ const DIMENSIONS = [
 const ASSESSED_FLAG = { weather: "weather_assessed", upload_fidelity: "upload_fidelity_assessed" };
 
 export const isScore = (v) => Number.isInteger(v) && v >= 0 && v <= 100;
-export const critiqueFailed = (c) => !c || typeof c !== "object" || c.status === "failed" || !c.scores;
 
+/** null = not assessed; undefined = malformed (the whole critique is then treated as failed). */
 function dimensionValue(critique, key) {
   const value = critique.scores?.[key];
   const flag = ASSESSED_FLAG[key];
-  if (flag && critique[flag] === false) return null;
-  return isScore(value) ? value : null;
+  if (flag && (critique[flag] === false || value === null)) return null;
+  return isScore(value) ? value : undefined;
 }
+
+const wellFormed = (c) => DIMENSIONS.every(([key]) => dimensionValue(c, key) !== undefined);
+
+export const critiqueFailed = (c) =>
+  !c || typeof c !== "object" || c.status === "failed" || !c.scores || typeof c.scores !== "object" || !wellFormed(c);
 
 function gauge(key, label, value) {
   const state = value === null ? "na" : value < RETRY_THRESHOLD ? "low" : "ok";
@@ -48,10 +53,10 @@ export function overallBlock(option) {
   const badge = h("span", { class: `verdict ${verdict}` }, VERDICT_LABEL[verdict]);
   if (verdict === "unknown") return h("div", { class: "overall" }, badge);
   const overall = isScore(option.critique.overall) ? String(option.critique.overall) : "—";
-  return h("div", { class: "overall" },
-    h("span", { class: "overall-readout", "aria-label": `Overall score ${overall} out of 100` }, overall),
-    h("span", { class: "overall-scale" }, "/100"),
-    badge);
+  return h("div", { class: "overall", role: "img", "aria-label": `Overall score ${overall} out of 100, ${VERDICT_LABEL[verdict]}` },
+    h("span", { class: "overall-readout", "aria-hidden": "true" }, overall),
+    h("span", { class: "overall-scale", "aria-hidden": "true" }, "/100"),
+    h("span", { "aria-hidden": "true" }, badge));
 }
 
 export function gauges(critique) {

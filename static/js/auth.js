@@ -3,6 +3,7 @@
 import { api } from "./api.js";
 import { $ } from "./dom.js";
 import { update } from "./state.js";
+import { toast } from "./toast.js";
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_.-]{3,40}$/;
 const MIN_PASSWORD = 8;
@@ -89,7 +90,12 @@ export function initAuth(callbacks) {
     $("#auth-password").setAttribute("autocomplete", "new-password");
   });
   $("#logout-btn").addEventListener("click", async () => {
-    await api.logout();
+    const result = await api.logout();
+    if (!result.ok && result.status !== 401) {
+      // The server session may still be valid, so don't pretend the user is signed out.
+      toast("Could not sign out. Please try again.", "error");
+      return;
+    }
     signOutLocally();
   });
 }

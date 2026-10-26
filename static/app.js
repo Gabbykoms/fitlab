@@ -7,7 +7,7 @@ import { $, show } from "./js/dom.js";
 import { cancelRemixes, initRemix } from "./js/remix.js";
 import { cancelGeneration, initResults, startGenerate } from "./js/results.js";
 import { closeDrawer, initSaved, loadSaved } from "./js/saved.js";
-import { resetForSignOut } from "./js/state.js";
+import { getState, resetForSignOut } from "./js/state.js";
 import { toast } from "./js/toast.js";
 import { clearUploadQueue, initWardrobe, loadWardrobe } from "./js/wardrobe.js";
 
@@ -32,7 +32,8 @@ function onSignedOut() {
 
 let sessionExpiredShown = false;
 setUnauthorizedHandler(() => {
-  if (sessionExpiredShown) return;
+  // A late 401 from a request sent before an explicit sign-out is expected, not an expiry.
+  if (sessionExpiredShown || !getState().user) return;
   sessionExpiredShown = true;
   toast("Please sign in again.", "error");
   signOutLocally();

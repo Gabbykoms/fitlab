@@ -31,7 +31,13 @@ export function subscribe(listener) {
   return () => listeners.delete(listener);
 }
 
+let sessionEpoch = 0;
+
+/** Async work captures this before awaiting and bails if it changed (sign-out happened). */
+export const currentEpoch = () => sessionEpoch;
+
 export function resetForSignOut() {
+  sessionEpoch += 1;
   update(() => ({ ...initialState }));
 }
 

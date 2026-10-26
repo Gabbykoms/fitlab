@@ -5,6 +5,7 @@ import { toast } from "./toast.js";
 
 const REQUIRED = ["#occasion", "#aesthetic", "#event-date", "#event-time"];
 const GEO_TIMEOUT_MS = 10_000;
+let generating = false;
 
 export function todayISO() {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
@@ -46,7 +47,7 @@ export function validateBrief(brief) {
 function refreshValidity() {
   const brief = readBrief();
   const problem = validateBrief(brief);
-  $("#generate-btn").disabled = Boolean(problem);
+  $("#generate-btn").disabled = generating || Boolean(problem);
   // Only surface the past-date problem inline; empty fields are marked on blur.
   $("#brief-error").textContent = brief.event_date && brief.event_date < todayISO()
     ? "The event date cannot be in the past." : "";
@@ -90,10 +91,9 @@ function renderSelectionEcho(ids) {
 }
 
 export function setGenerating(busy) {
-  const button = $("#generate-btn");
-  button.textContent = busy ? "Generating…" : "Generate three outfits";
-  if (busy) button.disabled = true;
-  else refreshValidity();
+  generating = busy;
+  $("#generate-btn").textContent = busy ? "Generating…" : "Generate three outfits";
+  refreshValidity();
 }
 
 export function initBrief({ onSubmit }) {
