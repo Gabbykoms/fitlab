@@ -125,7 +125,9 @@ def test_full_flow_stays_same_origin_without_auth_headers(page: Page, server_url
     expect(page.locator(".option-card")).to_have_count(3)
     assert seen
     for url, headers in seen:
-        assert url.startswith(server_url) or url.startswith("data:"), f"external request: {url}"
+        # data: and same-origin blob: URLs are local previews (FE spec: URL.createObjectURL), not network calls.
+        local = url.startswith("data:") or url.startswith(f"blob:{server_url}")
+        assert url.startswith(server_url) or local, f"external request: {url}"
         if "/api/" in url:
             assert "authorization" not in {k.lower() for k in headers}
 
