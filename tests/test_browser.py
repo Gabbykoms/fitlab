@@ -275,6 +275,41 @@ def test_usable_at_360px(page: Page, server_url):
 
 # ---- regressions from code review ---------------------------------------------------
 
+def test_late_wardrobe_response_does_not_cross_accounts(page: Page, server_url):
+    held = []
+
+    def wardrobe_response(route):
+        if not held:
+            held.append(route)
+        else:
+            route.fulfill(json={"items": [{
+                "id": 202, "label": "Current account shirt", "category": "top",
+                "image_data_url": "",
+            }]})
+
+    page.route("**/api/wardrobe", wardrobe_response)
+    sign_up(page, server_url)
+    page.click("#logout-btn")
+    expect(page.locator("#auth-dialog")).to_be_visible()
+    assert held, "initial wardrobe request was not intercepted"
+
+    # Register in the same page: navigation would discard the pending request.
+    page.fill("#auth-username", f"u{uuid.uuid4().hex[:10]}")
+    page.fill("#auth-password", "correct-horse-1")
+    page.click("#register-btn")
+    expect(page.locator("#auth-dialog")).to_be_hidden()
+    expect(page.locator("#wardrobe-grid")).to_contain_text("Current account shirt")
+
+    with page.expect_request_finished(lambda request: request == held[0].request):
+        held[0].fulfill(json={"items": [{
+            "id": 101, "label": "Previous account shirt", "category": "top",
+            "image_data_url": "",
+        }]})
+    page.wait_for_timeout(100)
+    expect(page.locator("#wardrobe-grid")).to_contain_text("Current account shirt")
+    expect(page.locator("#wardrobe-grid")).not_to_contain_text("Previous account shirt")
+
+
 def test_generate_stays_disabled_while_job_runs(page: Page, server_url):
     sign_up(page, server_url)
     fill_brief(page)

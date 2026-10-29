@@ -124,7 +124,9 @@ function render(state) {
 }
 
 export async function loadWardrobe() {
+  const epoch = currentEpoch();
   const result = await api.wardrobe();
+  if (epoch !== currentEpoch()) return;
   if (!result.ok) return toast(result.message, "error");
   update(() => ({ wardrobe: result.data?.items ?? [], selectedItemIds: [] }));
 }
