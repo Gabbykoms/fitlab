@@ -1,6 +1,6 @@
 # FitLab
 
-**Version 0.1.0**: front-end preview. The web front end is complete and runs against a local stand-in API. The real accounts backend (`app.py`, `db.py`) now supports persistent registration and sessions. Weather, generation, critique integration, and wardrobe/saved-look persistence remain in progress.
+**Version 0.1.0**: front-end preview. The web front end is complete and runs against a local stand-in API. The real backend now includes persistent accounts, wardrobe storage, weather, generation jobs, critique/retries, remixing, and saved looks. Offline integration tests pass; live AI quality and deployment are still unverified.
 
 FitLab is an AI outfit studio. You describe an occasion, and FitLab generates three outfit ideas on fictional mannequins. A vision model then critiques each generated image against your brief and the event-day weather. It is a CPSC 415 Team Project 1 (multimodal web app) built by Gabriel, Nadia and Patrick.
 
@@ -61,7 +61,7 @@ python3 -m venv .venv
 
 ### Run the front end (available now)
 
-The backend isn't merged yet. `dev_server.py` is an in-memory stand-in for the API: it needs no keys, makes no network calls, and returns fake images and critiques.
+`dev_server.py` is an in-memory stand-in for the API: it needs no keys, makes no network calls, and returns fake images and critiques.
 
 ```bash
 .venv/bin/uvicorn dev_server:app --reload
@@ -84,23 +84,24 @@ You can trigger edge cases with keywords:
 .venv/bin/pytest tests/test_browser.py -q
 ```
 
-### Run the real accounts backend
+### Run the real backend
 
 ```bash
 .venv/bin/uvicorn app:app --reload --port 8001
 # open http://localhost:8001
 ```
 
-This backend currently supports accounts and health checks only; styling routes return an explicit unavailable response. No provider key is needed for accounts. Run its tests with `.venv/bin/pytest tests/test_app.py -q`.
+Set `OPENROUTER_API_KEY` in the server environment for upload preflight and generation. Accounts and stored data need no provider key. Run all offline tests with `.venv/bin/pytest -q`. See [BACKEND.md](BACKEND.md) for storage, model configuration, and deployment requirements.
 
 ## Project status
 
 | Item | Status |
 |---|---|
 | Front end and browser tests | Done (branch `feature/frontend`) |
-| Critique engine | In progress (branch `critique-checker`) |
-| Accounts server and database | Initial slice implemented on `feature/backend` |
-| Weather, generator, styling persistence | Pending integration |
+| Critique engine | Parser reused from `critique-checker`; provider integration and retries implemented |
+| Accounts server and database | Implemented on `feature/backend` |
+| Weather, generator, styling persistence | Implemented; verified offline with fake providers |
+| Live provider evaluation | Pending; no billed inference run during backend implementation |
 | Live deployment URL | Not deployed yet |
 | Running API cost total | To be recorded from provider usage pages |
 

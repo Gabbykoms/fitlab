@@ -1,136 +1,112 @@
 # FitLab backend
 
-This is the backend development guide. The authoritative contracts are in [spec.md](spec.md), especially sections 3.1–3.5, 5, and 7; implementation responsibilities and sequencing are in [plan.md](plan.md).
+The real backend now implements accounts, wardrobe uploads, weather lookup, background outfit generation, visual critique/retries, remixing, and saved looks. The full contracts are in [spec.md](spec.md); implementation notes below explain refinements made during integration.
 
-## Current status
-
-The repository currently runs a frontend preview against `dev_server.py` and `dev_fixtures.py`. This API uses in-memory data and fake images and critiques. It does not provide production authentication, persistent storage, real weather, or AI generation.
-
-The first backend slice is implemented in `app.py` and `db.py`: static serving, database health, registration, login, logout, and session enforcement. Accounts and sessions persist in SQLite. Styling services and their database tables remain planned; authenticated requests to unimplemented API routes return `501`. Existing browser tests still exercise the preview server; `tests/test_app.py` checks the real accounts API.
+Offline tests verify the real API and storage with fake external providers. Live AI output quality, billed model comparisons, and deployment still require verification. `dev_server.py` remains a separate, in-memory UI preview.
 
 ## Modules
 
 | File | Responsibility |
 |---|---|
-| `app.py` | FastAPI routes, request validation, session enforcement, orchestration, background jobs, and serving `static/`. No SQL or direct provider calls. |
-| `db.py` | SQLite schema and all parameterized SQL, transactions, sessions, and ownership checks. No network calls. |
-| `weather.py` | Resolve event-time forecasts through Open-Meteo, including city lookup, timezone handling, and explicit unavailable results. |
-| `generator.py` | Build prompts, generate three mannequin outfits with reference images, and identify visible clothing pieces. |
-| `critique.py` | Inspect generated images and references, validate critique JSON, and control the bounded retry loop. Independent of the app server and database. |
+| `app.py` | FastAPI routes, session middleware, validation, health, static serving, and service wiring. |
+| `db.py` | SQLite schema, transactions, sessions, ownership-scoped wardrobe/jobs/looks queries, and restart recovery. |
+| `services.py` | Background jobs, upload orchestration, remix context, private storage, and response serialization. |
+| `models.py` | Typed request contracts and field validation. |
+| `weather.py` | Open-Meteo geocoding and event-local hourly forecasts, with explicit unavailable results. |
+| `generator.py` | Prompts, mannequin generation, image validation, and vision-based garment extraction. |
+| `critique.py` | Strict critique parsing/scoring, image-based critique calls, upload preflight, and the three-attempt ceiling. |
+| `provider.py` | OpenRouter HTTP transport and safe provider failures. |
+| `media.py`, `limits.py` | Image decoding, private filesystem storage, and bounded multipart uploads. |
+| `eval.py` | Explicitly invoked, billed comparison of vision models against existing image cases. |
 
-Target stack: Python 3.11+, FastAPI, Uvicorn, SQLite, and `httpx`. The specification calls for bcrypt or Argon2id password hashing. Add implementation dependencies to `requirements.txt` as the modules land.
+The critique parser and its original tests were imported from `origin/critique-checker` at `a8674d6`, then extended with provider integration. They were reused rather than independently reimplemented.
 
-## Features and API
+## API
 
-All API paths start with `/api`. See spec section 3.1 for exact request and response fields.
+| Feature | Routes |
+|---|---|
+| Health | `GET /api/health` |
+| Accounts | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
+| Wardrobe | `GET /api/wardrobe`, `POST /api/wardrobe/upload`, `DELETE /api/wardrobe/{item_id}` |
+| Weather | `GET /api/weather` |
+| Generation | `POST /api/outfits/generate`, `GET /api/outfits/{job_id}` |
+| Remix | `POST /api/outfits/remix` |
+| Saved looks | `POST /api/looks`, `GET /api/looks`, `DELETE /api/looks/{look_id}` |
+| API schema | `GET /api/openapi.json` (authenticated) |
 
-| Feature | Routes | Required behavior |
-|---|---|---|
-| Health | `GET /api/health` | Check database availability; report configuration booleans without exposing secrets. |
-| Accounts | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | Hashed passwords, opaque session cookies, and expiry after 30 days of inactivity. |
-| Wardrobe | `GET /api/wardrobe`, `POST /api/wardrobe/upload`, `DELETE /api/wardrobe/{item_id}` | Validate images, reject people, store category/label, prevent duplicate uploads per user, and enforce ownership. |
-| Weather | `GET /api/weather` | Resolve city or coordinates for the event date/time; return an explicit unavailable summary on failure. |
-| Generation | `POST /api/outfits/generate`, `GET /api/outfits/{job_id}` | Submit a background job and poll for three outfit options with pieces, critiques, and weather. |
-| Remix | `POST /api/outfits/remix` | Preserve selected pieces and source context, apply revision instructions, and start a fresh generation/critique job. |
-| Saved looks | `POST /api/looks`, `GET /api/looks`, `DELETE /api/looks/{look_id}` | Save the full result and original weather; filter by occasion and event-date range. |
+Only health, registration, login, and static assets are public. The session identifies the user; callers cannot choose another user ID. Ownership checks apply to jobs, uploads, source pieces, and saved looks. User-owned resources that are not accessible return `404`.
 
-Health, registration, login, and static assets are public. Other routes require a valid session. The server derives the user ID from the session, never from a client-supplied identity. Requests for another user's job return `404`.
-
-## Generation workflow
-
-1. Validate the brief and ownership of selected wardrobe items.
-2. Return `202` with a `job_id`; perform the work in the background.
-3. Resolve weather in the event location's timezone. A city override takes precedence over coordinates. Missing weather must not stop generation or be replaced with invented conditions.
-4. Generate three distinct outfits on fictional, faceless mannequins and identify their visible garments.
-5. Critique the actual image pixels against the brief and uploaded references. Score occasion, aesthetic, styling, weather, and upload fidelity using the contract in spec section 7.
-6. Retry each option independently when the overall score is below 70 or a major/critical mismatch requires it. Allow at most two retries, for three total attempts per option.
-7. Return the final images, piece lists, critique histories, and unresolved issues. A failed critique is disclosed rather than presented as a passing score.
-
-Job states are `queued`, `running`, `complete`, and `failed`. Use in-process asynchronous tasks with job state mirrored in SQLite. Interrupted jobs must become failed after restart instead of remaining pending indefinitely. Redis and Celery are outside the planned architecture.
-
-Remixes reuse this workflow with a fresh retry budget. Model choices and provider request details belong in the spec; verify provider availability when implementing those calls.
-
-## Persistence and safety
-
-- Store users, sessions, wardrobe metadata, jobs, saved looks, and settings in SQLite. Use transactions, foreign-key enforcement, WAL mode, and parameterized SQL.
-- Scope user-owned data access to the authenticated user in both routes and database helpers.
-- Validate uploaded bytes for image type and decodability, enforce the 10 MB limit, generate storage filenames server-side, and run the clothing-only vision check.
-- Keep uploads and generated renders outside public static assets. The frontend receives images through authenticated API responses.
-- Use `HttpOnly`, `SameSite=Lax` session cookies, with `Secure` in production.
-- Keep provider secrets in the server environment and out of responses, logs, database records, and browser assets.
-- Preserve the original weather and validated critique when saving a look. Store generation provenance: model, prompt, seed where available, timestamp, and fictional-mannequin disclosure.
-- On deployment, persist the database, uploads, and renders across restarts. These files are ignored by Git.
-
-## Frontend integration points
-
-- The browser calls only same-origin `/api/*` routes and polls jobs every two seconds.
-- Outfit options contain `image_data_url`. The implemented wardrobe and saved-look views expect that field too; make those response shapes explicit when implementing their endpoints.
-- The critique module's result wrapper contains `payload` plus operational metadata. The HTTP outfit response must expose the section 7 critique document where the frontend expects `option.critique`, with history normalized the same way.
-- Remix requests currently send `city` but not coordinates. Reuse the source job's location when no replacement city is supplied.
-- Unassessed dimensions are `null` with the appropriate assessment flags, not zero scores. Error responses and failed jobs need readable messages.
-
-## Local development
-
-Run these commands from the repository root:
+## Running locally
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m playwright install chromium
-```
-
-The preview is available now and needs no API keys:
-
-```bash
-.venv/bin/uvicorn dev_server:app --reload
-# Open http://localhost:8000
-```
-
-Run the real accounts backend on a separate port from the mock preview:
-
-```bash
 .venv/bin/uvicorn app:app --reload --port 8001
 ```
 
-| Environment variable | Planned use |
+Open http://localhost:8001. Accounts, empty galleries, and saved data work without a provider key. Upload preflight and image generation require `OPENROUTER_API_KEY` in the server environment; they fail explicitly when it is absent. The app does not automatically load `.env` files.
+
+| Variable | Use |
 |---|---|
-| `OPENROUTER_API_KEY` | Server-side AI provider authentication. Configure before real generation or critique calls. |
-| `FITLAB_SECURE_COOKIES` | Set to `true` in HTTPS deployments, including behind a TLS proxy. HTTPS requests also enable Secure cookies automatically. |
-| `FITLAB_DB_PATH` | Database location; defaults to `./fitlab.db`. Point to persistent storage in deployment. |
+| `OPENROUTER_API_KEY` | Server-only provider authentication; read at call time. |
+| `FITLAB_DB_PATH` | SQLite file, default `./fitlab.db`. |
+| `FITLAB_STORAGE_PATH` | Parent of private `uploads/` and `renders/`; defaults to the database directory. |
+| `FITLAB_SECURE_COOKIES` | Set `true` behind an HTTPS reverse proxy. HTTPS requests also enable Secure cookies. |
+| `FITLAB_IMAGE_MODEL` | Default `google/gemini-3.1-flash-image`. |
+| `FITLAB_CRITIQUE_MODEL` | Default `xiaomi/mimo-v2.6-flash`. |
+| `PORT` | Listening port when starting with `python app.py`. |
 
-Open-Meteo is specified as keyless for the initial implementation. A `.env` file is ignored by Git, but the project does not currently configure automatic loading of it; supply variables through the process environment.
+Open-Meteo needs no key. `WEATHER_API_KEY` is retained only as a health-report compatibility field; it is not used by this implementation.
 
-## Implementation order
+For the offline mock UI preview, run `.venv/bin/uvicorn dev_server:app --reload` on port 8000. Mock accounts/data are separate from the real app.
 
-1. Add `db.py`, schema initialization, and database tests.
-2. Add `app.py` with health, registration, login, logout, current-user routes, session enforcement, and static serving.
-3. Implement weather and wardrobe persistence/validation, coordinating the upload vision check with the critique work.
-4. Add generation jobs, piece extraction, and the polling contract.
-5. Integrate critique and retry handling, checking the existing `critique-checker` branch before duplicating work.
-6. Connect remix and saved-look operations.
-7. Test the integrated backend, run real model comparisons, document results/costs, and deploy.
+## Processing and persistence
 
-Per the plan, Gabriel leads accounts/database and generation; Nadia leads weather and remix; Patrick leads critique, uploads, testing, and deployment. Coordinate changes to shared `app.py` routes before implementing them.
+1. Validate a brief and load only the caller's selected wardrobe images.
+2. Insert a queued job and return `202` with its ID. At most two jobs per account can be active; at most three jobs execute concurrently per process.
+3. Resolve weather. A city overrides coordinates; no location or forecast means no weather assessment.
+4. Generate three independent mannequin options (one for a remix), then critique their actual pixels. A failing option can be retried twice; a failed critique call does not trigger another image generation.
+5. Store private image files and result metadata in SQLite. Partial success keeps the successful options and their original indexes. Missing image files do not hide stored critique text.
+6. Poll until complete or failed. Restarted/interrupted jobs become failed rather than remaining pending.
+7. Save looks as snapshots of the brief, critique, provenance, and original weather. Date filters use the event date. Deleting a saved-look entry retains its render because the source job still references it.
+
+Remixes validate selected piece objects against the owned completed source job. Source outfit images guide generation; only actual wardrobe uploads are scored for upload fidelity. Source weather is reused if date, time, and location are unchanged. A deleted source wardrobe item must be removed from the brief before it can be reused.
+
+## Provider integration
+
+Image generation uses OpenRouter's dedicated `POST /api/v1/images` API with base64 `input_references`. Vision calls use `/api/v1/chat/completions` with image parts. MiMo reasoning is disabled so the response can be parsed as JSON.
+
+The public catalog was checked during implementation: the default image model accepts image references, and the configured cheap/strong critique models accept images. The dedicated endpoint does not advertise seed control for the default image model. Prompts include a fresh variation identifier; provenance records `seed: null` and `variation_id`, not a falsely applied seed. Changes in model availability must be checked before a live evaluation.
+
+Provider-reported usage is stored with each result. Unreported cost remains `null`, not zero. Reconcile costs against the provider dashboard before updating the project cost total.
+
+Sources: [OpenRouter image API](https://openrouter.ai/docs/guides/overview/multimodal/image-generation), [Open-Meteo forecast API](https://open-meteo.com/en/docs).
 
 ## Verification
 
-The existing browser suite runs against the mock API:
-
 ```bash
-.venv/bin/pytest tests/test_browser.py -q
+.venv/bin/python -m playwright install chromium
+.venv/bin/pytest -q
 ```
 
-Run the implemented backend account tests with `.venv/bin/pytest tests/test_app.py -q`. They cover persistence, password hashing, duplicate usernames, session rotation/expiry/logout, authentication enforcement, HTTPS cookies, health failures, and secret-safe validation.
+- `tests/test_app.py`: persistent accounts, sessions, password hashing, cookies, health, and safe validation.
+- `tests/test_db.py`: initialization, transactions, ownership, job admission, and recovery.
+- `tests/test_backend.py`: actual API upload/generate/remix/save flows, validation, ownership, partial failures, retry limits, and persistence.
+- `tests/test_weather.py`, `tests/test_provider.py`: external request shapes and failure handling using mocked HTTP.
+- `tests/test_critique.py`: the inherited normative scoring/validation suite.
+- `tests/test_backend_browser.py`: full frontend flow against the real backend and isolated SQLite, with fake AI/weather providers.
+- `tests/test_browser.py`: existing mock UI scenarios and regressions.
 
-Verification targets as the remaining services land:
+To perform a **billed** evaluation, prepare a JSON list of cases, each with `image` (local path), `brief`, optional `weather`, and optional `references` (local paths). Then run:
 
-| Area | Evidence required |
-|---|---|
-| Database and accounts | Ownership isolation, password hashing, session expiry, duplicate usernames, idempotent initialization, and saved-look round trips. |
-| Weather | Location precedence, timezone/date handling, unavailable forecasts, and provider failures without live network dependencies. |
-| Critique | JSON validation, score calculations, mismatch severity, unassessed dimensions, and retry limits using fake providers. |
-| API and jobs | Authentication, ownership checks, upload validation, job transitions, restart recovery, and safe failures. |
-| Integrated browser flow | Run browser checks against the real app with stubbed providers; retain same-origin/key-isolation assertions. |
-| Real model evaluation | Compare cheap and stronger vision models on project images, recording accuracy, latency, and billed cost. |
+```bash
+.venv/bin/python eval.py --cases eval-cases.json --output eval-results.json
+```
 
-Record verification in `CHECKS.md`, development conventions in `CLAUDE.md`, component explanations in `ANNOTATION.md`, and the required separate review in `REVIEW.md` as those artifacts are created. Keep the root README's deployment URL and cost total current.
+This compares the default cheap and stronger vision models. Review against human judgments; the script records outputs and reported costs, not an invented accuracy score.
+
+## Deployment
+
+A Dockerfile is included; it has not been deployed or validated with a Docker build in this session. Run a **single worker/service instance**, because jobs and concurrency controls are process-local. Mount persistent storage at `/data` for SQLite and private images. The Dockerfile sets the corresponding paths and secure-cookie flag; supply the provider key through the hosting environment. Use `/api/health` for readiness.
+
+Before releasing: run a paid end-to-end smoke test, compare critique models, reconcile billing, verify storage survives a redeploy, and complete the course's independent review and annotation artifacts. No deployment or paid inference was performed during implementation.

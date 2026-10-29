@@ -1,6 +1,6 @@
-"""FitLab API: persistent accounts, sessions, health, and static frontend.
+"""FitLab API: authenticated styling services and static frontend.
 
-Run with uvicorn app:app --reload. Styling services are not implemented yet.
+Run one worker with uvicorn app:app. Provider keys remain server-side.
 """
 from contextlib import asynccontextmanager
 import os
@@ -10,7 +10,7 @@ import sqlite3
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +18,13 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 import db
+from datetime import date
+from typing import Annotated
+from models import Event, GenerateBody, RemixBody, SaveBody
+from services import StylingService, MissingResource
+from provider import ProviderError
+from media import CATEGORIES, MAX_UPLOAD_BYTES
+from limits import UploadBodyLimit
 
 STATIC_DIR = Path(__file__).resolve().parent / 'static'
 COOKIE = 'fitlab_session'
@@ -32,18 +39,27 @@ class Credentials(BaseModel):
     password: str = Field(min_length=8, max_length=200)
 
 
-def create_app(database_path=None, secure_cookies=None):
+def create_app(database_path=None, secure_cookies=None, *, storage_path=None, provider=None, weather_resolver=None):
     path = str(database_path or os.environ.get('FITLAB_DB_PATH', './fitlab.db'))
     secure = (os.environ.get('FITLAB_SECURE_COOKIES', '').lower() == 'true'
               if secure_cookies is None else secure_cookies)
 
+    storage = storage_path or os.environ.get('FITLAB_STORAGE_PATH', str(Path(path).resolve().parent))
+    styling = StylingService(path, storage, provider, weather_resolver)
+
     @asynccontextmanager
     async def lifespan(app):
         await run_in_threadpool(db.init_db, path)
-        yield
+        await run_in_threadpool(db.recover_jobs, path)
+        try:
+            yield
+        finally:
+            await styling.close()
 
     app = FastAPI(title='FitLab', version='0.1.0', lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url='/api/openapi.json')
+    app.state.styling = styling
+    app.add_middleware(UploadBodyLimit)
 
     def set_session_cookie(response, token, request):
         response.set_cookie(COOKIE, token, max_age=db.SESSION_SECONDS,
@@ -125,10 +141,88 @@ def create_app(database_path=None, secure_cookies=None):
     def me(request: Request):
         return request.state.user
 
-    # Keep unimplemented APIs separate from the static mount and honest about status.
+    @app.exception_handler(MissingResource)
+    async def missing_resource(request, exc):
+        return JSONResponse({'detail': 'That item is no longer available.'}, status_code=404)
+
+    @app.exception_handler(ProviderError)
+    async def provider_error(request, exc):
+        return JSONResponse({'detail': str(exc)}, status_code=503)
+
+    @app.exception_handler(OSError)
+    async def storage_error(request, exc):
+        return JSONResponse({'detail': 'We could not access that image right now. Please try again.'}, status_code=503)
+
+    @app.get('/api/wardrobe')
+    async def wardrobe(request: Request):
+        return {'items': await styling.wardrobe(request.state.user_id)}
+
+    @app.post('/api/wardrobe/upload')
+    async def upload(request: Request, file: UploadFile = File(...), category: str = Form(...),
+                     label: str = Form('', max_length=80)):
+        if category not in CATEGORIES:
+            raise HTTPException(422, 'Please choose a clothing category.')
+        try:
+            data = await file.read(MAX_UPLOAD_BYTES + 1)
+        finally:
+            await file.close()
+        if len(data) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, 'That file is larger than 10 MB.')
+        try:
+            return await styling.upload(request.state.user_id, data, category, label.strip() or None)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+
+    @app.delete('/api/wardrobe/{item_id}')
+    async def delete_item(item_id: int, request: Request):
+        await styling.delete_item(request.state.user_id, item_id)
+        return {'ok': True}
+
+    @app.get('/api/weather')
+    async def weather(event: Annotated[Event, Query()]):
+        return await styling.weather_resolver(**event.model_dump(mode='json'))
+
+    @app.post('/api/outfits/generate', status_code=202)
+    async def generate(body: GenerateBody, request: Request):
+        allowed = {styling.provider.critique_model, 'xiaomi/mimo-v2.6-flash', 'minimax/minimax-m3', 'openai/gpt-4o-mini'}
+        if body.critique_model is not None and body.critique_model not in allowed:
+            raise HTTPException(422, 'Choose a supported critique model.')
+        try:
+            return await styling.submit(request.state.user_id, body.model_dump(mode='json'))
+        except ValueError as exc:
+            raise HTTPException(429, str(exc)) from None
+
+    @app.post('/api/outfits/remix', status_code=202)
+    async def remix(body: RemixBody, request: Request):
+        try:
+            return await styling.remix(request.state.user_id, body.model_dump(mode='json'))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+
+    @app.get('/api/outfits/{job_id}')
+    async def poll(job_id: str, request: Request):
+        return await styling.poll(request.state.user_id, job_id)
+
+    @app.post('/api/looks')
+    async def save(body: SaveBody, request: Request):
+        return {'look': await styling.save(request.state.user_id, body.job_id, body.option_index)}
+
+    @app.get('/api/looks')
+    async def looks(request: Request, occasion: str | None = None,
+                    from_date: date | None = None, to_date: date | None = None):
+        if from_date and to_date and from_date > to_date:
+            raise HTTPException(422, 'The from date must be on or before the to date.')
+        return {'looks': await styling.looks(request.state.user_id, occasion, from_date, to_date)}
+
+    @app.delete('/api/looks/{look_id}')
+    async def delete_look(look_id: int, request: Request):
+        if not await styling.call_db(db.delete_look, request.state.user_id, look_id):
+            raise MissingResource()
+        return {'ok': True}
+
     @app.api_route('/api/{remaining:path}', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
-    def unavailable(remaining: str):
-        raise HTTPException(501, 'This backend feature is not available yet.')
+    def unknown_api(remaining: str):
+        raise HTTPException(404, 'That API route is not available.')
 
     app.mount('/', StaticFiles(directory=STATIC_DIR, html=True), name='static')
     return app

@@ -1192,4 +1192,38 @@ This sits under the $20 threshold the assignment names, with no explanation requ
 **Review required before build:** every component's language and model decision needs a named team member's sign-off, and Section 7 needs a second reader who will write `tests/test_critique.py` against it.
 
 Approved by: Nadia (pending team review), 2026-10-25
- 
+
+
+## Backend implementation amendment
+
+The backend implementation adds `services.py` for orchestration, `provider.py` for HTTP transport,
+`media.py`/`limits.py` for image validation and request limits, and `models.py` for HTTP schemas.
+`app.py` remains free of SQL and direct external-provider calls. SQLite is the authoritative job
+state; the process retains task handles, not a second mutable copy of each job. Run one worker.
+
+The current OpenRouter image API is `POST /api/v1/images`, with `input_references` and base64
+image results, rather than the older chat-based generation transport described above.
+The default model's dedicated endpoint does not advertise seed support. Fresh variation identifiers
+are included in prompts, stored as `variation_id`; `seed` is null when unsupported. This supersedes
+GEN-10/CRT-16's assertion of an applied seed for this endpoint. Provider documentation:
+https://openrouter.ai/docs/guides/overview/multimodal/image-generation
+
+Wardrobe and saved-look responses include authenticated `image_data_url` values. Images are stored
+under private `uploads/` and `renders/` directories, not mounted as public static files. Critique
+results are exposed directly as the section 7 document, with per-call usage/latency metadata, rather
+than leaking the internal result wrapper into the frontend contract. Missing reported cost is null.
+
+The upload endpoint enforces a 10 MB file limit. A pre-parser middleware bounds the entire multipart
+request to 10 MB plus 64 KB overhead, including chunked requests, before parser spooling. Image bytes
+are validated before persistent storage. Photos with people, non-clothing images, and inconclusive
+preflight calls are not saved. Notes accept up to 1000 characters, matching the shipped frontend.
+
+A remix validates piece objects against the owned completed source job and supplies its relevant
+outfit images as generation references. Only actual wardrobe images count toward upload-fidelity
+scoring. Unchanged event context reuses the original forecast. Saved-look date filters apply to event
+dates, and snapshots preserve original critiques, weather, and generation provenance.
+
+Admission is limited to two active jobs per user and three executing jobs per process. Database
+connections use a five-second SQLite busy timeout; they do not perform the earlier proposed three
+application-level retries. Interrupted jobs become failed on startup. Render files remain while
+source jobs reference them, even after a saved-look entry is deleted; retention cleanup is not yet implemented.

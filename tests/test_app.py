@@ -91,7 +91,7 @@ def test_protected_routes_and_static_boundary(backend):
     assert client.get('/app.py').status_code == 404
     assert client.get('/fitlab.db').status_code == 404
     sign_in(client)
-    assert client.get('/api/wardrobe').status_code == 501
+    assert client.get('/api/wardrobe').json() == {'items': []}
 
 
 def test_health_and_validation_do_not_leak_secrets(backend, monkeypatch):
