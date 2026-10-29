@@ -1,0 +1,132 @@
+/* Split-workbench layout: sticky controls column + results stage. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3) var(--s5);
+  background: rgba(247, 247, 244, 0.88);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--hairline);
+}
+.brand { display: flex; align-items: baseline; gap: var(--s2); min-width: 0; }
+.brand-mark { color: var(--accent); font-size: 1.25rem; line-height: 1; }
+.brand-mark.big { font-size: 2rem; }
+.brand-name { font-weight: 600; font-size: var(--text-lg); letter-spacing: -0.01em; }
+.brand-meta { font-size: var(--text-xs); color: var(--ink-3); white-space: nowrap; }
+.topbar-actions { display: flex; align-items: center; gap: var(--s2); }
+.user-badge { font-size: var(--text-xs); color: var(--ink-2); padding-right: var(--s2); }
+.user-badge::before { content: "●"; color: var(--accent); margin-right: 6px; }
+
+.workbench {
+  display: grid;
+  grid-template-columns: var(--controls-width) minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: start;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: var(--s5);
+}
+.controls {
+  position: sticky;
+  top: 72px;
+  display: grid;
+  gap: var(--s4);
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-bottom: var(--s2);
+}
+.stage { display: grid; gap: var(--s4); min-width: 0; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: var(--s4) var(--s5) var(--s5);
+}
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
+.panel-label {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+  padding-bottom: var(--s3);
+  margin-bottom: var(--s4);
+  border-bottom: 1px dashed var(--hairline);
+}
+.panel-head .panel-label { flex: 1; }
+.panel-label span { color: var(--accent); }
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s4);
+}
+
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--s2);
+  padding: 72px var(--s5);
+  text-align: center;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius);
+  color: var(--ink-2);
+}
+.empty-state .hint { max-width: 40ch; }
+
+/* Drawer */
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 40;
+  width: min(440px, 100vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  background: var(--panel);
+  border-left: 1px solid var(--hairline);
+  box-shadow: var(--shadow-float);
+  overflow-y: auto;
+  animation: slide-in 220ms var(--ease);
+}
+.drawer-head { display: flex; justify-content: space-between; align-items: baseline; }
+.drawer-head .panel-label { flex: 1; margin-bottom: 0; }
+.scrim { position: fixed; inset: 0; z-index: 30; background: rgba(17, 17, 17, 0.18); }
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
+
+.toasts {
+  position: fixed;
+  right: var(--s5);
+  bottom: var(--s5);
+  z-index: 60;
+  display: grid;
+  gap: var(--s2);
+  max-width: min(420px, calc(100vw - 2 * var(--s4)));
+}
+
+/* Responsive: stack below 900px (FE-24) */
+@media (max-width: 1180px) {
+  .options-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .workbench { grid-template-columns: minmax(0, 1fr); padding: var(--s3); gap: var(--s3); }
+  .controls { position: static; max-height: none; overflow: visible; }
+  .options-grid { grid-template-columns: minmax(0, 1fr); }
+  .card-figure { aspect-ratio: auto; height: min(70vw, 380px); }
+  .topbar { padding: var(--s2) var(--s3); }
+  .brand-meta { display: none; }
+}
+@media (max-width: 480px) {
+  .panel { padding: var(--s3) var(--s3) var(--s4); }
+  .field-row { grid-template-columns: minmax(0, 1fr); }
+  .topbar-actions .btn { padding: 4px 8px; font-size: var(--text-sm); }
+  .user-badge { display: none; }
+  .toasts { right: var(--s3); bottom: var(--s3); }
+}

@@ -24,5 +24,5 @@ The app generates an updated mannequin image reflecting the selected combination
 ## Open decisions
 
 - Clothing categories and rules for conflicting selections.
-- Whether to retain previous revisions for comparison in the first version.
+- ~~Whether to retain previous revisions for comparison in the first version.~~ **Resolved 2026-10-26 (Patrick):** yes, for the current session only. Remixed looks collect in a revisions strip held in browser memory, and each one can be saved as a look. See `spec.md` FE-26.
 

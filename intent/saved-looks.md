@@ -23,4 +23,4 @@ Saved looks belong to the user's account and are accessible across sessions and 
 
 ## Open decisions
 
-- Whether users can organize, rename, delete, and further refine saved looks in the first version.
+- ~~Whether users can organize, rename, delete, and further refine saved looks in the first version.~~ **Resolved 2026-10-26 (Patrick):** users can view, filter (by occasion and date range), and delete saved looks, with a confirmation step before deleting. Renaming, folders, and remixing a saved look are out of scope for v1. See `spec.md` FE-19, FE-20, and FE-27.
