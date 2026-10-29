@@ -1,6 +1,6 @@
 # FitLab
 
-**Version 0.1.0**: front-end preview. The web front end is complete and runs against a local stand-in API. The real backend (`app.py`, `db.py`, `weather.py`, `generator.py`, `critique.py`) is in progress.
+**Version 0.1.0**: front-end preview. The web front end is complete and runs against a local stand-in API. The real backend now includes persistent accounts, wardrobe storage, weather, generation jobs, critique/retries, remixing, and saved looks. Offline integration tests pass; live AI quality and deployment are still unverified.
 
 FitLab is an AI outfit studio. You describe an occasion, and FitLab generates three outfit ideas on fictional mannequins. A vision model then critiques each generated image against your brief and the event-day weather. It is a CPSC 415 Team Project 1 (multimodal web app) built by Gabriel, Nadia and Patrick.
 
@@ -36,6 +36,8 @@ Browser (static/)  ──same-origin /api/* only──▶  FastAPI server (app.p
 
 The full design is in [`spec.md`](spec.md), the build plan is in [`plan.md`](plan.md), and the per-feature intent documents are in [`intent/`](intent/).
 
+For backend modules, API routes, implementation order, and verification requirements, see the [backend development guide](BACKEND.md).
+
 ## Technologies
 
 | Layer | Technology |
@@ -59,7 +61,7 @@ python3 -m venv .venv
 
 ### Run the front end (available now)
 
-The backend isn't merged yet. `dev_server.py` is an in-memory stand-in for the API: it needs no keys, makes no network calls, and returns fake images and critiques.
+`dev_server.py` is an in-memory stand-in for the API: it needs no keys, makes no network calls, and returns fake images and critiques.
 
 ```bash
 .venv/bin/uvicorn dev_server:app --reload
@@ -82,20 +84,24 @@ You can trigger edge cases with keywords:
 .venv/bin/pytest tests/test_browser.py -q
 ```
 
-### Run the real app (once the backend lands)
+### Run the real backend
 
 ```bash
-export OPENROUTER_API_KEY=...   # never commit keys; .env is git-ignored
-.venv/bin/uvicorn app:app --reload
+.venv/bin/uvicorn app:app --reload --port 8001
+# open http://localhost:8001
 ```
+
+Set `OPENROUTER_API_KEY` in the server environment for upload preflight and generation. Accounts and stored data need no provider key. Run all offline tests with `.venv/bin/pytest -q`. See [BACKEND.md](BACKEND.md) for storage, model configuration, and deployment requirements.
 
 ## Project status
 
 | Item | Status |
 |---|---|
 | Front end and browser tests | Done (branch `feature/frontend`) |
-| Critique engine | In progress (branch `critique-checker`) |
-| App server, database, weather, generator | Not started on `main` |
+| Critique engine | Parser reused from `critique-checker`; provider integration and retries implemented |
+| Accounts server and database | Implemented on `feature/backend` |
+| Weather, generator, styling persistence | Implemented; verified offline with fake providers |
+| Live provider evaluation | Pending; no billed inference run during backend implementation |
 | Live deployment URL | Not deployed yet |
 | Running API cost total | To be recorded from provider usage pages |
 
