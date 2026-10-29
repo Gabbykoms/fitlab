@@ -1,6 +1,6 @@
 # FitLab
 
-**Version 0.1.0**: front-end preview. The web front end is complete and runs against a local stand-in API. The real backend (`app.py`, `db.py`, `weather.py`, `generator.py`, `critique.py`) is in progress.
+**Version 0.1.0**: front-end preview. The web front end is complete and runs against a local stand-in API. The real accounts backend (`app.py`, `db.py`) now supports persistent registration and sessions. Weather, generation, critique integration, and wardrobe/saved-look persistence remain in progress.
 
 FitLab is an AI outfit studio. You describe an occasion, and FitLab generates three outfit ideas on fictional mannequins. A vision model then critiques each generated image against your brief and the event-day weather. It is a CPSC 415 Team Project 1 (multimodal web app) built by Gabriel, Nadia and Patrick.
 
@@ -35,6 +35,8 @@ Browser (static/)  ──same-origin /api/* only──▶  FastAPI server (app.p
 4. **API keys never reach the browser.** The browser talks only to its own server, and that server makes every model and weather call. `tests/test_browser.py` checks this: it scans the page source for key or provider strings and inspects every network request.
 
 The full design is in [`spec.md`](spec.md), the build plan is in [`plan.md`](plan.md), and the per-feature intent documents are in [`intent/`](intent/).
+
+For backend modules, API routes, implementation order, and verification requirements, see the [backend development guide](BACKEND.md).
 
 ## Technologies
 
@@ -82,12 +84,14 @@ You can trigger edge cases with keywords:
 .venv/bin/pytest tests/test_browser.py -q
 ```
 
-### Run the real app (once the backend lands)
+### Run the real accounts backend
 
 ```bash
-export OPENROUTER_API_KEY=...   # never commit keys; .env is git-ignored
-.venv/bin/uvicorn app:app --reload
+.venv/bin/uvicorn app:app --reload --port 8001
+# open http://localhost:8001
 ```
+
+This backend currently supports accounts and health checks only; styling routes return an explicit unavailable response. No provider key is needed for accounts. Run its tests with `.venv/bin/pytest tests/test_app.py -q`.
 
 ## Project status
 
@@ -95,7 +99,8 @@ export OPENROUTER_API_KEY=...   # never commit keys; .env is git-ignored
 |---|---|
 | Front end and browser tests | Done (branch `feature/frontend`) |
 | Critique engine | In progress (branch `critique-checker`) |
-| App server, database, weather, generator | Not started on `main` |
+| Accounts server and database | Initial slice implemented on `feature/backend` |
+| Weather, generator, styling persistence | Pending integration |
 | Live deployment URL | Not deployed yet |
 | Running API cost total | To be recorded from provider usage pages |
 
