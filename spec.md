@@ -70,7 +70,7 @@ Open-Meteo was checked live on 2026-10-25 and needs **no API key**:
 | Concern | Decision | Applies to |
 |---|---|---|
 | Backend language | Python 3.11 | `app.py`, `db.py`, `weather.py`, `generator.py`, `critique.py`, `eval.py`, tests |
-| Front-end language | Vanilla ES2022 JavaScript + CSS (no build step) | `static/app.js`, `static/index.html`, `static/style.css` |
+| Front-end language | Vanilla ES2022 JavaScript (native ES modules) + CSS (no build step) | `static/app.js`, `static/js/*.js`, `static/index.html`, `static/style.css`, `static/css/*.css` |
 | Deployment | Render web service, Docker, SQLite file on a persistent disk | whole app |
 | Secret handling | Server-side environment variables only | whole app |
 | Provider access | OpenRouter REST over HTTPS from the server only | `generator.py`, `critique.py` |
@@ -82,6 +82,7 @@ Open-Meteo was checked live on 2026-10-25 and needs **no API key**:
 **Why vanilla JavaScript for the front end (alternative considered).** The front end is one page with four panels (auth dialog, wardrobe tray, brief panel, three-card result showcase, remix editor, saved-looks drawer) and no shared mutable state beyond the current brief and the current result set. A framework would add a bundler, a dev server, and a build step to a project that must run from `python app.py` on a free Render tier and be explainable line by line in ten minutes of presentation time.
 **Alternative considered: React + Vite.** Rejected on build/deploy complexity and because React's component model buys nothing for a page with a single document and a handful of imperative panels.
 **Alternative considered: Svelte or Alpine.js.** Svelte would be the natural "lightweight framework" pick and was the runner-up; Alpine was rejected outright as too small for the upload tray and remix editor state.
+**Module layout (decided 2026-10-26):** the client is split into native ES modules (`static/app.js` as the entry, feature modules under `static/js/`) loaded with `<script type="module">`. Browsers resolve the imports directly, so there is still no build step, bundler, or dev server.
 **Consequence, recorded honestly:** because there is no build step, there is no TypeScript type-checking on the client. The critique JSON contract from Section 7 is validated on the **server** in `critique.py` before it reaches the client, and the client treats the payload as untrusted. This is a deliberate trade: one contract, one validator, one place to change it.
 
 **Why SQLite (alternative considered).** The data is small, single-node, and relational: users, sessions, wardrobe items, generated looks, critique records. Rows are user-owned and read by owner only. `sqlite3` is in the Python standard library and needs no daemon. On Render the database file lives on a mounted persistent disk so it survives redeploys.
@@ -130,7 +131,7 @@ HTTP API, all under `/api`. All request and response bodies are JSON except the 
 | POST | `/api/looks` | session | `{"job_id":str,"option_index":int}` | `{"look":<saved look>}` |
 | GET | `/api/looks` | session | query: `occasion` (optional), `from_date`/`to_date` (optional ISO) | `{"looks":[<saved look>, ...]}` |
 | DELETE | `/api/looks/{look_id}` | session (owner) | — | `{"ok":true}` |
-| GET | `/` and other static paths | none | — | `static/index.html`, `static/app.js`, `static/style.css` |
+| GET | `/` and other static paths | none | — | `static/index.html`, `static/app.js`, `static/js/*.js`, `static/style.css`, `static/css/*.css`, `static/fonts/*` |
 
 **Outfit option shape** (returned inside `/api/outfits/{job_id}`):
 
@@ -708,7 +709,7 @@ The critique module has **no dependency on `app.py` and no dependency on `db.py`
 
 ---
 
-### 3.6 Component F — Front end (`static/index.html`, `static/app.js`, `static/style.css`)
+### 3.6 Component F — Front end (`static/index.html`, `static/app.js`, `static/js/*.js`, `static/style.css`, `static/css/*.css`, `static/fonts/`)
 
 #### What it does
 
@@ -763,7 +764,7 @@ The client sends the browser-detected coordinates **only if the user grants perm
 - **FE-9** — Before an upload is sent, the tray states the clothing-only rule in plain words: "Upload clothing only — a flat lay or an item on a hanger. Photos of people are not allowed."
 - **FE-10** — A rejected upload shows the server's reason verbatim in the user's terms, including the people-detection rejection.
 - **FE-11** — Selecting wardrobe pieces marks them in the tray, and the selection is echoed in the brief panel before generation ("3 pieces selected as the starting point") so the user can see what the request contains.
-- **FE-12** — Generation is submitted with a `POST /api/outfits/generate` that returns a `job_id`, and the client **polls** `GET /api/outfits/{job_id}` every 2 seconds until the status is `complete` or `failed`. Polling stops on either terminal state and also stops if the page is hidden for more than 60 seconds.
+- **FE-12** — Generation is submitted with a `POST /api/outfits/generate` that returns a `job_id`, and the client **polls** `GET /api/outfits/{job_id}` every 2 seconds until the status is `complete` or `failed`. Polling stops on either terminal state, on a `404` or `401`, or after 5 consecutive transient failures (network error, 5xx, 429, 408). If the page is hidden for more than 60 seconds, polling **pauses** and **resumes** as soon as the page is visible again, so a long job's result is not lost because the user switched tabs. *(Amended 2026-10-26: originally "stops if the page is hidden for more than 60 seconds".)*
 - **FE-13** — The three-option showcase renders each option as a card: the image, the identified pieces, the overall score, the per-dimension score badges, the plain-language summary, the mismatch list, and the uncertainty list.
 - **FE-14** — A dimension that was not assessed (weather, or upload fidelity with no references) renders as a **"Not assessed"** badge. It is never rendered as a zero and never rendered as a percentage.
 - **FE-15** — A look that exhausted its retries renders an explicit unresolved-issues banner listing what did not match. The client never shows such a look as a clean pass.
@@ -776,6 +777,22 @@ The client sends the browser-detected coordinates **only if the user grants perm
 - **FE-22** — The client stores nothing sensitive in `localStorage`. The session is an `HttpOnly` cookie the client cannot read, which is what it needs to be for the browser test to prove the key is isolated.
 - **FE-23** — The page degrades without JavaScript only to the point of showing a "FitLab needs JavaScript" notice. There is no no-JavaScript fallback, and none is claimed.
 - **FE-24** — The layout is usable at 360 px width. The three option cards stack vertically below 900 px.
+- **FE-25** — Each option card has a collapsible **attempt log** built from `critique_history`: one row per attempt with its overall score and `retry_reason`, so the user can see the critique-and-retry loop that produced the final image.
+- **FE-26** — Remixed looks accumulate in a **revisions strip** for the current session only. The strip lives in client memory, needs no extra API, and is cleared on reload. Every revision can be saved with `POST /api/looks`.
+- **FE-27** — Saved looks can be viewed and deleted (with a confirmation step). They cannot be renamed or put into folders in the first version.
+- **FE-28** — The critique model is **not** user-selectable in the UI. The server default is used, and each card displays the `critique_model` that produced its critique.
+
+#### Visual design (decided 2026-10-26)
+
+| Concern | Decision |
+|---|---|
+| Theme | Light "lab notebook": paper background `#F7F7F4` with a faint 24 px graph-paper grid, ink `#111`, white panels with 1 px hairline borders, no heavy shadows |
+| Accent | Lab teal (about `#0E8C8C`) for primary actions, focus rings, and passing readouts. Amber for scores below 70 and the unresolved banner. Red only for critical mismatches and errors |
+| Typography | IBM Plex Sans (body) and IBM Plex Mono (section labels, scores, codes, timestamps), self-hosted as woff2 in `static/fonts/` under the OFL. No CDN, per SEC-2 |
+| Layout | Split workbench: a sticky left controls column (brief, location and weather, wardrobe, Generate) and a right results column (options, revisions, remix). Saved looks open in a slide-out drawer. Columns stack below 900 px |
+| Lab metaphor | Subtle. It comes from the visuals (mono `01 / BRIEF` labels, option cards lettered A/B/C, instrument-style readouts). Labels stay plain words, and the user-facing messages in this spec are used verbatim |
+| Score display | A large mono overall readout plus one horizontal bar per dimension, with a tick mark at 70 (the retry threshold). A dimension that was not assessed is a hatched bar labeled "Not assessed", never 0 and never a percentage (FE-14) |
+| Motion | While a job runs, placeholder cards show a slow scan-line shimmer and a mono elapsed timer. All animation is disabled under `prefers-reduced-motion` |
 
 #### Failure handling
 
@@ -857,7 +874,7 @@ generated → critiqued → (pass) ───────────────
 | `tests/test_weather.py` | Coordinate lookup, city override, out-of-range handling, provider error, network error, missing-weather fallback, timezone handling | No | No — the HTTP client is injected and mocked |
 | `tests/test_db.py` | Ownership isolation (user A cannot read user B's rows), password hashing, session expiry, idempotent `init_db`, duplicate-username handling, saved-look round trip | No | No — an in-memory or temp-file SQLite database |
 | `tests/test_critique.py` | Payload parsing, schema validation, rubric weighting, mismatch detection, retry triggers, retry ceiling, uncertainty disclosure, the reasoning-off request flag | No | No — the HTTP client is injected and mocked |
-| `tests/test_browser.py` | Key isolation in source and in the network trace, UI element rendering, generation trigger, request inspection, authentication enforcement | No (the server is started with a stub provider) | No |
+| `tests/test_browser.py` | Key isolation in source and in the network trace, UI element rendering, generation trigger, request inspection, authentication enforcement | No (the test starts `dev_server.py`, an in-memory stub that implements the Section 3.1 API with fake images and critiques) | No |
 | `eval.py` | Cheap-versus-strong critique comparison on real generated outfits, with latency, cost, and agreement recorded in `CHECKS.md` | **Yes** | Yes — this is the one billed script |
 
 The four `pytest` files run with **no API key and no network access**, which is what makes them usable in a pull-request check. `eval.py` is the only script that spends money, and it is run manually and its output is committed to `CHECKS.md`.
@@ -1175,4 +1192,38 @@ This sits under the $20 threshold the assignment names, with no explanation requ
 **Review required before build:** every component's language and model decision needs a named team member's sign-off, and Section 7 needs a second reader who will write `tests/test_critique.py` against it.
 
 Approved by: Nadia (pending team review), 2026-10-25
- 
+
+
+## Backend implementation amendment
+
+The backend implementation adds `services.py` for orchestration, `provider.py` for HTTP transport,
+`media.py`/`limits.py` for image validation and request limits, and `models.py` for HTTP schemas.
+`app.py` remains free of SQL and direct external-provider calls. SQLite is the authoritative job
+state; the process retains task handles, not a second mutable copy of each job. Run one worker.
+
+The current OpenRouter image API is `POST /api/v1/images`, with `input_references` and base64
+image results, rather than the older chat-based generation transport described above.
+The default model's dedicated endpoint does not advertise seed support. Fresh variation identifiers
+are included in prompts, stored as `variation_id`; `seed` is null when unsupported. This supersedes
+GEN-10/CRT-16's assertion of an applied seed for this endpoint. Provider documentation:
+https://openrouter.ai/docs/guides/overview/multimodal/image-generation
+
+Wardrobe and saved-look responses include authenticated `image_data_url` values. Images are stored
+under private `uploads/` and `renders/` directories, not mounted as public static files. Critique
+results are exposed directly as the section 7 document, with per-call usage/latency metadata, rather
+than leaking the internal result wrapper into the frontend contract. Missing reported cost is null.
+
+The upload endpoint enforces a 10 MB file limit. A pre-parser middleware bounds the entire multipart
+request to 10 MB plus 64 KB overhead, including chunked requests, before parser spooling. Image bytes
+are validated before persistent storage. Photos with people, non-clothing images, and inconclusive
+preflight calls are not saved. Notes accept up to 1000 characters, matching the shipped frontend.
+
+A remix validates piece objects against the owned completed source job and supplies its relevant
+outfit images as generation references. Only actual wardrobe images count toward upload-fidelity
+scoring. Unchanged event context reuses the original forecast. Saved-look date filters apply to event
+dates, and snapshots preserve original critiques, weather, and generation provenance.
+
+Admission is limited to two active jobs per user and three executing jobs per process. Database
+connections use a five-second SQLite busy timeout; they do not perform the earlier proposed three
+application-level retries. Interrupted jobs become failed on startup. Render files remain while
+source jobs reference them, even after a saved-look entry is deleted; retention cleanup is not yet implemented.

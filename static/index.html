@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FitLab: Outfit studio</title>
+  <link rel="preload" href="/fonts/plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <noscript><p class="noscript">FitLab needs JavaScript to run.</p></noscript>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">⌬</span>
+      <span class="brand-name">FitLab</span>
+      <span class="brand-meta mono">outfit studio · v0.1.0</span>
+    </div>
+    <div class="topbar-actions" id="session-actions" hidden>
+      <span class="user-badge mono" id="user-badge"></span>
+      <button type="button" class="btn btn-ghost" id="open-saved">Saved looks</button>
+      <button type="button" class="btn btn-ghost" id="logout-btn">Sign out</button>
+    </div>
+  </header>
+
+  <main class="workbench">
+    <!-- Left column: controls -->
+    <div class="controls">
+      <section class="panel" id="brief-panel" aria-labelledby="brief-title">
+        <h2 class="panel-label mono" id="brief-title"><span>01</span> / Brief</h2>
+        <form id="brief-form" novalidate>
+          <label class="field">
+            <span class="field-label">Occasion</span>
+            <input id="occasion" name="occasion" type="text" maxlength="200" required
+                   placeholder="e.g. senior-year dinner">
+          </label>
+          <label class="field">
+            <span class="field-label">Aesthetic</span>
+            <input id="aesthetic" name="aesthetic" type="text" maxlength="200" required
+                   placeholder="e.g. relaxed, clean, smart">
+          </label>
+          <fieldset class="field">
+            <legend class="field-label">Styling preference</legend>
+            <div class="segmented">
+              <label><input type="radio" name="styling" value="masculine"><span>Masculine</span></label>
+              <label><input type="radio" name="styling" value="feminine"><span>Feminine</span></label>
+              <label><input type="radio" name="styling" value="unisex"><span>Unisex</span></label>
+            </div>
+          </fieldset>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Event date</span>
+              <input id="event-date" name="event_date" type="date" required>
+            </label>
+            <label class="field">
+              <span class="field-label">Event time</span>
+              <input id="event-time" name="event_time" type="time" required>
+            </label>
+          </div>
+          <div class="field">
+            <label class="field-label" for="city">Event city <span class="optional">optional</span></label>
+            <div class="input-with-action">
+              <input id="city" name="city" type="text" maxlength="120" placeholder="e.g. Hartford">
+              <button type="button" class="btn btn-ghost btn-small" id="use-location">Use my location</button>
+            </div>
+            <p class="hint mono" id="location-status" aria-live="polite">No location chosen yet.</p>
+          </div>
+          <label class="field">
+            <span class="field-label">Notes <span class="optional">optional</span></span>
+            <textarea id="notes" name="notes" rows="2" maxlength="1000"
+                      placeholder="Anything else: colors to avoid, fit…"></textarea>
+          </label>
+          <p class="hint mono" id="selection-echo">No wardrobe pieces selected.</p>
+          <p class="hint hint-error" id="brief-error" aria-live="polite"></p>
+          <button type="submit" class="btn btn-primary btn-block" id="generate-btn" disabled>
+            Generate three outfits
+          </button>
+        </form>
+      </section>
+
+      <section class="panel" id="wardrobe-panel" aria-labelledby="wardrobe-title" hidden>
+        <h2 class="panel-label mono" id="wardrobe-title"><span>02</span> / Wardrobe</h2>
+        <p class="notice" id="clothing-rule">
+          Upload clothing only — a flat lay or an item on a hanger. Photos of people are not allowed.
+        </p>
+        <label class="dropzone" id="dropzone">
+          <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+          <span class="dropzone-text">Drop images here or <u>browse</u></span>
+          <span class="hint mono">PNG · JPEG · WebP · GIF — max 10 MB</span>
+        </label>
+        <ul class="upload-queue" id="upload-queue"></ul>
+        <ul class="wardrobe-grid" id="wardrobe-grid"></ul>
+      </section>
+    </div>
+
+    <!-- Right column: results -->
+    <div class="stage">
+      <section class="panel" id="results-panel" aria-labelledby="results-title" hidden>
+        <div class="panel-head">
+          <h2 class="panel-label mono" id="results-title"><span>03</span> / Options</h2>
+          <p class="status-line mono" id="job-status" aria-live="polite"></p>
+        </div>
+        <div class="weather-readout" id="weather-readout"></div>
+        <div class="options-grid" id="options"></div>
+      </section>
+
+      <section class="panel" id="remix-panel" aria-labelledby="remix-title" hidden>
+        <h2 class="panel-label mono" id="remix-title"><span>04</span> / Remix</h2>
+        <p class="hint">Click pieces on any option to combine them, then describe the change.</p>
+        <ul class="chosen-list" id="remix-chosen"></ul>
+        <label class="field">
+          <span class="field-label">Revision instructions</span>
+          <textarea id="remix-instructions" rows="2" maxlength="1000"
+                    placeholder="e.g. Keep the trousers, swap the jacket."></textarea>
+        </label>
+        <button type="button" class="btn btn-primary" id="remix-btn" disabled>Generate remix</button>
+      </section>
+
+      <section class="panel" id="revisions-wrap" aria-labelledby="revisions-title" hidden>
+        <h2 class="panel-label mono" id="revisions-title"><span>05</span> / Revisions · this session</h2>
+        <div class="revisions-strip" id="revisions"></div>
+      </section>
+
+      <section class="empty-state" id="empty-state">
+        <div class="empty-figure" aria-hidden="true"></div>
+        <p class="mono">Awaiting brief</p>
+        <p class="hint">Describe the occasion on the left. Three outfit options appear here, each checked by a vision critique.</p>
+      </section>
+    </div>
+  </main>
+
+  <aside class="drawer" id="saved-drawer" role="dialog" aria-modal="true" aria-labelledby="saved-title" hidden>
+    <div class="drawer-head">
+      <h2 class="panel-label mono" id="saved-title"><span>◫</span> / Saved looks</h2>
+      <button type="button" class="btn btn-ghost btn-small" id="close-saved" aria-label="Close saved looks">Close</button>
+    </div>
+    <form class="filters" id="filter-form">
+      <input id="filter-occasion" type="text" placeholder="Filter by occasion" maxlength="200">
+      <div class="field-row">
+        <label class="field"><span class="field-label">From</span><input id="filter-from" type="date"></label>
+        <label class="field"><span class="field-label">To</span><input id="filter-to" type="date"></label>
+      </div>
+      <button type="submit" class="btn btn-ghost btn-small" id="filter-apply">Apply filters</button>
+    </form>
+    <ul class="saved-list" id="saved-list"></ul>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-title">
+    <form id="auth-form" method="dialog" novalidate>
+      <p class="brand-mark big" aria-hidden="true">⌬</p>
+      <h2 id="auth-title">Sign in to FitLab</h2>
+      <p class="hint">An account keeps your wardrobe and saved looks across devices.</p>
+      <label class="field">
+        <span class="field-label">Username</span>
+        <input id="auth-username" type="text" autocomplete="username" required minlength="3" maxlength="40">
+      </label>
+      <label class="field">
+        <span class="field-label">Password</span>
+        <input id="auth-password" type="password" autocomplete="current-password" required minlength="8">
+      </label>
+      <p class="hint hint-error" id="auth-error" aria-live="polite"></p>
+      <div class="auth-actions">
+        <button type="submit" class="btn btn-primary" id="login-btn" value="login">Sign in</button>
+        <button type="submit" class="btn btn-ghost" id="register-btn" value="register">Create account</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+</body>
+</html>
