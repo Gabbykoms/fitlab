@@ -48,3 +48,35 @@ def test_provider_errors_do_not_echo_response_or_key(monkeypatch, status):
                 await OpenRouter(client).vision('test', [])
             assert 'very-secret' not in str(exc.value)
     run_async(run)
+
+
+NOT_CONFIGURED = 'The styling service is not configured right now. Please try again later.'
+
+
+@pytest.mark.parametrize('status', [401, 402, 403])
+def test_account_errors_say_not_configured_and_log_status_only(monkeypatch, caplog, status):
+    from provider import ProviderUnavailable
+    monkeypatch.setenv('OPENROUTER_API_KEY', 'very-secret')
+    caplog.set_level('WARNING', logger='fitlab.provider')
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda r: httpx.Response(status, json={'error': {'message': 'very-secret upstream body'}}))) as client:
+            with pytest.raises(ProviderUnavailable) as exc:
+                await OpenRouter(client).image('prompt', [], 1)
+            assert str(exc.value) == NOT_CONFIGURED
+    run_async(run)
+    assert f'HTTP {status}' in caplog.text and 'images' in caplog.text
+    assert 'very-secret' not in caplog.text and 'upstream body' not in caplog.text
+
+
+def test_server_errors_are_logged_by_status(monkeypatch, caplog):
+    monkeypatch.setenv('OPENROUTER_API_KEY', 'very-secret')
+    caplog.set_level('WARNING', logger='fitlab.provider')
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda r: httpx.Response(502, text='very-secret gateway page'))) as client:
+            with pytest.raises(ProviderError):
+                await OpenRouter(client).vision('test', [])
+    run_async(run)
+    assert 'HTTP 502' in caplog.text and 'chat/completions' in caplog.text
+    assert 'very-secret' not in caplog.text

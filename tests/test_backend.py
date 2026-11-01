@@ -155,7 +155,21 @@ def test_generation_failure_terminates(backend):
     provider.no_images = True
     job = wait_job(client, client.post('/api/outfits/generate', json=brief()).json()['job_id'])
     assert job['status'] == 'failed'
-    assert job['error'] and job['options'] == []
+    assert job['error'] == 'The image service could not draw these outfits. Please try again.'
+    assert job['options'] == []
+
+
+def test_account_failure_fails_job_with_not_configured_message(backend, caplog):
+    from provider import ProviderUnavailable
+    client, provider, _ = backend
+    async def refused(prompt, references, seed):
+        raise ProviderUnavailable('The styling service is not configured right now. Please try again later.')
+    provider.image = refused
+    caplog.set_level('WARNING', logger='fitlab.services')
+    job = wait_job(client, client.post('/api/outfits/generate', json=brief()).json()['job_id'])
+    assert job['status'] == 'failed'
+    assert job['error'] == 'The styling service is not configured right now. Please try again later.'
+    assert 'ProviderUnavailable' in caplog.text
 
 
 def test_upload_cap_and_no_file_after_rejection(backend):

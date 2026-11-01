@@ -101,6 +101,7 @@
 .mismatch[data-severity=minor] { border-left-color: var(--hairline-strong); background: var(--panel-sunk); }
 .mismatch[data-severity=critical] { border-left-color: var(--danger); background: var(--danger-soft); }
 .mismatch-head { display: flex; gap: var(--s2); font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; color: var(--ink-2); }
+.options-note { grid-column: 1 / -1; }
 .unresolved-banner { padding: var(--s2) var(--s3); background: var(--warn-soft); border: 1px solid #EAD7B0; border-radius: var(--radius-sm); font-size: var(--text-sm); }
 .unresolved-banner strong { display: block; font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; color: var(--warn); letter-spacing: 0.06em; }
 .critique-failed { padding: var(--s2) var(--s3); border: 1px dashed var(--hairline-strong); border-radius: var(--radius-sm); font-size: var(--text-sm); color: var(--ink-2); }

@@ -9,7 +9,13 @@ import { currentEpoch, getState, update, watch } from "./state.js";
 import { toast } from "./toast.js";
 
 const OPTION_COUNT = 3;
-const PARTIAL_MESSAGE = "One of the three outfit ideas could not be drawn. The other two are ready.";
+
+/** "2 of the 3 outfit ideas could not be drawn. The other one is ready." */
+function partialMessage(drawn) {
+  const missing = OPTION_COUNT - drawn;
+  const rest = drawn === 1 ? "The other one is ready." : `The other ${drawn} are ready.`;
+  return `${missing} of the ${OPTION_COUNT} outfit ideas could not be drawn. ${rest}`;
+}
 let cancelPoll = () => {};
 let ticker = null;
 let generation = 0; // bumped per submit; stale responses and poll callbacks compare against it
@@ -49,7 +55,7 @@ export async function startGenerate(brief) {
       guardedSetJob(token, { status: data.status, options: Array.isArray(data.options) ? data.options : [],
         weather: data.weather ?? null, error: data.error ?? null });
       if (data.status === "failed") toast(data.error || "The outfits could not be generated. Please try again.", "error");
-      else if (data.options?.length && data.options.length < OPTION_COUNT) toast(PARTIAL_MESSAGE);
+      else if (data.options?.length && data.options.length < OPTION_COUNT) toast(partialMessage(data.options.length));
     },
     onError: (message) => {
       if (!isCurrent(token)) return;
@@ -75,7 +81,7 @@ function statusText(job) {
     case "submitting": return `submitting · ${elapsed}`;
     case "queued": return `queued · ${elapsed}`;
     case "running": return `running · generate → critique → retry · ${elapsed}`;
-    case "complete": return `complete · ${job.options?.length ?? 0} options · ${elapsed}`;
+    case "complete": return `complete · ${job.options?.length ?? 0} of ${OPTION_COUNT} options · ${elapsed}`;
     case "failed": return "failed";
     default: return "";
   }
@@ -99,13 +105,17 @@ function renderOptions(job) {
     return replace(grid, Array.from({ length: OPTION_COUNT }, (_, i) => pendingCard(letterFor(i))));
   }
   if (!job.options.length) return replace(grid, h("p", { class: "hint" }, "No outfits came back. Please try again."));
-  replace(grid, job.options.map((option) => optionCard(option, {
+  const cards = job.options.map((option) => optionCard(option, {
     jobId: job.id,
     label: letterFor(option.index ?? 0),
     selectable: true,
     isPressed: isChosen,
     onTogglePiece: (piece, opt) => togglePiece(job.id, opt, piece),
-  })));
+  }));
+  const partial = job.options.length < OPTION_COUNT
+    ? [h("p", { class: "notice options-note", role: "status" }, partialMessage(job.options.length))]
+    : [];
+  replace(grid, [...partial, ...cards]);
 }
 
 function render(job, previous) {

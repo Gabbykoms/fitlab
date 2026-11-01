@@ -2,6 +2,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 from pathlib import Path
 import sqlite3
 
@@ -9,8 +10,11 @@ from starlette.concurrency import run_in_threadpool
 import critique
 import db
 import media
-from provider import OpenRouter, ProviderError
+from provider import OpenRouter, ProviderError, ProviderUnavailable
 from weather import resolve_weather
+
+log = logging.getLogger('fitlab.services')
+GENERIC_FAILURE = 'The outfits could not be generated. Please try again.'
 
 
 class MissingResource(Exception):
@@ -138,11 +142,15 @@ class StylingService:
                         paths.append(path)
                         result.pop('image_data_url')
                         return {**result, 'image_path': path}
-                    except Exception:
-                        return None
+                    except Exception as exc:
+                        # Class name only: exception text from upstream libraries can carry request details.
+                        log.warning('Job %s option %s failed: %s', job_id, index, type(exc).__name__)
+                        return exc
                 results = await asyncio.gather(*(option(i) for i in range(1 if kind == 'remix' else 3)))
-                options = [o for o in results if o is not None]
+                options = [o for o in results if isinstance(o, dict)]
                 if not options:
+                    if any(isinstance(o, ProviderUnavailable) for o in results):
+                        raise ProviderUnavailable(str(next(o for o in results if isinstance(o, ProviderUnavailable))))
                     raise ProviderError('The image service could not draw these outfits. Please try again.')
                 await self.call_db(db.update_job, user_id, job_id, 'complete', options, weather)
         except asyncio.CancelledError:
@@ -151,10 +159,12 @@ class StylingService:
             for path in paths:
                 Path(path).unlink(missing_ok=True)
             raise
-        except Exception:
-            # Store only controlled wording; upstream exceptions can contain credentials.
-            await self.call_db(db.update_job, user_id, job_id, 'failed', None, None,
-                               'The outfits could not be generated. Please try again.')
+        except Exception as exc:
+            # Store only controlled wording: ProviderError messages are written by us; anything else
+            # may carry upstream text or credentials, so it gets the generic sentence.
+            log.warning('Job %s failed: %s', job_id, type(exc).__name__)
+            message = str(exc) if isinstance(exc, ProviderError) else GENERIC_FAILURE
+            await self.call_db(db.update_job, user_id, job_id, 'failed', None, None, message)
             for path in paths:
                 Path(path).unlink(missing_ok=True)
 
