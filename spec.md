@@ -418,6 +418,7 @@ When the forecast is unavailable the same dataclass is returned with `available 
 |---|---|
 | `httpx` | Async HTTP with timeouts; the same client library used by `generator.py` and `critique.py` |
 | `zoneinfo` (stdlib) | Converting the event's local date/time to UTC for the provider's hourly index, and formatting the display string in the event's own timezone |
+| `tzdata` | Windows has no system time-zone database, so `zoneinfo` fails on `America/New_York` without it (7 weather tests failed; 111 pass with it) |
 | `datetime` (stdlib) | Date arithmetic and the 16-day window check |
 
 **No API key.** `WEATHER_API_KEY` in `plan.md` is optional and, if set, is used only to raise the provider's rate limit; it is never required and never sent anywhere but to the weather provider.
