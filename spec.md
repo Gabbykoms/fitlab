@@ -564,7 +564,7 @@ The generator calls OpenRouter directly with the `Authorization: Bearer $OPENROU
 | Failure | Handling |
 |---|---|
 | HTTP 429 from OpenRouter | The option fails with a "busy" message. Other options continue. No automatic retry (GEN-7). |
-| HTTP 401 / 403 | The whole job fails with "the styling service is not configured right now" — this is a server misconfiguration, not a user error |
+| HTTP 401 / 402 / 403 | A server or account problem (bad key, credits below the request's worst-case cost, or key spending limit), not a user error. That option fails. If no option was drawn, the job fails with "The styling service is not configured right now. Please try again later." Options already drawn are kept. The server logs the HTTP status, never the response body. *(Amended 2026-11-01 after the live run: OpenRouter refuses each image request whose worst-case cost exceeds the remaining balance, so one of three concurrent requests can succeed.)* |
 | HTTP 5xx or timeout | That option fails; the other two continue. The user sees which slot is missing. |
 | 200 response containing no image payload | That option fails with "the image service returned no picture" |
 | Reference image too large or undecodable | The upload is rejected at upload time, so this cannot occur here; if it somehow does, the option is generated without that reference and the omission is disclosed in the option's `notes` |
