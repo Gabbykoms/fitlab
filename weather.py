@@ -1,7 +1,8 @@
 """Event-local Open-Meteo forecasts with explicit unavailable results."""
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
 import math
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import httpx
 
 FIELDS = {'temperature_f': 'temperature_2m', 'feels_like_f': 'apparent_temperature',

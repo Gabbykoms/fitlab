@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
+
 from critique import critique_image
 from media import read_image
 from provider import OpenRouter

@@ -84,7 +84,7 @@ def fill_brief(page: Page, occasion: str = "senior-year dinner", city: str = "Ha
 def generate(page: Page, **brief) -> None:
     fill_brief(page, **brief)
     page.click("#generate-btn")
-    expect(page.locator("#job-status")).to_contain_text(re.compile("complete|failed", re.I),
+    expect(page.locator("#job-status")).to_contain_text(re.compile("complete|failed", re.IGNORECASE),
                                                         timeout=JOB_TIMEOUT_MS)
 
 
@@ -126,7 +126,7 @@ def test_full_flow_stays_same_origin_without_auth_headers(page: Page, server_url
     assert seen
     for url, headers in seen:
         # data: and same-origin blob: URLs are local previews (FE spec: URL.createObjectURL), not network calls.
-        local = url.startswith("data:") or url.startswith(f"blob:{server_url}")
+        local = url.startswith(("data:", f"blob:{server_url}"))
         assert url.startswith(server_url) or local, f"external request: {url}"
         if "/api/" in url:
             assert "authorization" not in {k.lower() for k in headers}

@@ -1,6 +1,6 @@
 """Real backend account/session checks using an isolated SQLite database."""
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,8 +9,10 @@ ROOT = Path(__file__).resolve().parent.parent
 # Keep direct pytest invocation working without packaging the application.
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from app import COOKIE, create_app, hasher
+from datetime import UTC
+
 import db
+from app import COOKIE, create_app, hasher
 
 CREDS = {'username': 'test-user', 'password': 'correct-horse-1'}
 
@@ -76,8 +78,8 @@ def test_session_expiry_and_sliding_refresh(backend):
     assert client.get('/api/auth/me').status_code == 200
     with db.connection(path) as conn:
         expiry = conn.execute('SELECT expires_at FROM sessions WHERE token = ?', (token,)).fetchone()[0]
-        from datetime import datetime, timezone
-        assert (datetime.fromisoformat(expiry) - datetime.now(timezone.utc)).days >= 29
+        from datetime import datetime
+        assert (datetime.fromisoformat(expiry) - datetime.now(UTC)).days >= 29
         conn.execute('UPDATE sessions SET expires_at = ? WHERE token = ?', ('2000-01-01T00:00:00+00:00', token))
     assert client.get('/api/auth/me').status_code == 401
 

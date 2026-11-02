@@ -21,7 +21,7 @@ import hashlib
 import os
 import secrets
 import time
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
@@ -47,7 +47,7 @@ COUNTERS = {"user": 0, "item": 0, "look": 0}
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def _next_id(kind: str) -> int:
@@ -144,7 +144,7 @@ def _rejected(code: str, reason: str) -> dict:
 
 
 @app.post("/api/wardrobe/upload")
-async def upload(request: Request, file: UploadFile = File(...), category: str = Form(...),
+async def upload(request: Request, file: UploadFile = File(...), category: str = Form(...),  # noqa: B008 - FastAPI File/Form dependency idiom
                  label: str = Form("")):
     if category not in CATEGORIES:
         raise HTTPException(422, "Please choose a clothing category.")

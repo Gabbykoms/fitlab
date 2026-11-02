@@ -2,15 +2,26 @@
 
 Run one worker with uvicorn app:app. Provider keys remain server-side.
 """
-from contextlib import asynccontextmanager
 import os
-from pathlib import Path
 import secrets
 import sqlite3
+from contextlib import asynccontextmanager
+from datetime import date
+from pathlib import Path
+from typing import Annotated
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
-from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile, Query
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,13 +29,11 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 import db
-from datetime import date
-from typing import Annotated
-from models import Event, GenerateBody, RemixBody, SaveBody
-from services import StylingService, MissingResource
-from provider import ProviderError
-from media import CATEGORIES, MAX_UPLOAD_BYTES
 from limits import UploadBodyLimit
+from media import CATEGORIES, MAX_UPLOAD_BYTES
+from models import Event, GenerateBody, RemixBody, SaveBody
+from provider import ProviderError
+from services import MissingResource, StylingService
 
 STATIC_DIR = Path(__file__).resolve().parent / 'static'
 COOKIE = 'fitlab_session'
@@ -158,7 +167,7 @@ def create_app(database_path=None, secure_cookies=None, *, storage_path=None, pr
         return {'items': await styling.wardrobe(request.state.user_id)}
 
     @app.post('/api/wardrobe/upload')
-    async def upload(request: Request, file: UploadFile = File(...), category: str = Form(...),
+    async def upload(request: Request, file: UploadFile = File(...), category: str = Form(...),  # noqa: B008 - FastAPI File/Form dependency idiom
                      label: str = Form('', max_length=80)):
         if category not in CATEGORIES:
             raise HTTPException(422, 'Please choose a clothing category.')

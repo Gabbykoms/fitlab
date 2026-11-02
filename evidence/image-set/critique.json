@@ -1,0 +1,215 @@
+[
+  {
+    "name": "image-01",
+    "model": "minimax/minimax-m3",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the blazer is navy",
+          "met": true,
+          "evidence": "The blazer is a dark navy blue color."
+        },
+        {
+          "requirement": "the shirt is white",
+          "met": true,
+          "evidence": "The shirt visible beneath the blazer is white."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The figure has a featureless white head and white hands, clearly indicating a mannequin."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": true,
+          "evidence": "No text or logos are visible anywhere in the image."
+        }
+      ]
+    },
+    "raw": "{\"checks\": [{\"requirement\": \"the blazer is navy\", \"met\": true, \"evidence\": \"The blazer is a dark navy blue color.\"}, {\"requirement\": \"the shirt is white\", \"met\": true, \"evidence\": \"The shirt visible beneath the blazer is white.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The figure has a featureless white head and white hands, clearly indicating a mannequin.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": true, \"evidence\": \"No text or logos are visible anywhere in the image.\"}]}",
+    "usage": {
+      "in": 852,
+      "out": 251,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": true,
+      "problems": [],
+      "unmet": [],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-02",
+    "model": "minimax/minimax-m3",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the dress is pale blue",
+          "met": true,
+          "evidence": "The dress displays a soft, pale blue color throughout the fabric."
+        },
+        {
+          "requirement": "the dress is midi length, below the knee",
+          "met": true,
+          "evidence": "The hem of the dress falls well below the knee, reaching mid-calf area."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The dress is displayed on a white, featureless mannequin form."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": true,
+          "evidence": "No visible text, watermarks, or logos appear anywhere in the image."
+        }
+      ]
+    },
+    "raw": "{\"checks\": [{\"requirement\": \"the dress is pale blue\", \"met\": true, \"evidence\": \"The dress displays a soft, pale blue color throughout the fabric.\"}, {\"requirement\": \"the dress is midi length, below the knee\", \"met\": true, \"evidence\": \"The hem of the dress falls well below the knee, reaching mid-calf area.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The dress is displayed on a white, featureless mannequin form.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": true, \"evidence\": \"No visible text, watermarks, or logos appear anywhere in the image.\"}]}",
+    "usage": {
+      "in": 903,
+      "out": 309,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": true,
+      "problems": [],
+      "unmet": [],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-03",
+    "model": "minimax/minimax-m3",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the jacket is red",
+          "met": true,
+          "evidence": "The puffer jacket is clearly red in color."
+        },
+        {
+          "requirement": "the beanie is grey",
+          "met": true,
+          "evidence": "The beanie worn on the mannequin's head is grey."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The outfit is displayed on a white, featureless mannequin with no facial features."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": false,
+          "evidence": "A small dark logo/badge is visible on the left sleeve of the red jacket."
+        }
+      ]
+    },
+    "raw": "{\"checks\": [{\"requirement\": \"the jacket is red\", \"met\": true, \"evidence\": \"The puffer jacket is clearly red in color.\"}, {\"requirement\": \"the beanie is grey\", \"met\": true, \"evidence\": \"The beanie worn on the mannequin's head is grey.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The outfit is displayed on a white, featureless mannequin with no facial features.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": false, \"evidence\": \"A small dark logo/badge is visible on the left sleeve of the red jacket.\"}]}",
+    "usage": {
+      "in": 900,
+      "out": 312,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": false,
+      "problems": [
+        "1 requirement(s) reported unmet"
+      ],
+      "unmet": [
+        "there is no text or logo in the image"
+      ],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-04",
+    "model": "minimax/minimax-m3",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the coat is beige",
+          "met": true,
+          "evidence": "The trench coat is clearly a beige/tan color."
+        },
+        {
+          "requirement": "the boots are black",
+          "met": true,
+          "evidence": "The rubber rain boots are black."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The outfit is displayed on a featureless white mannequin."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": false,
+          "evidence": "Small brand labels or logos are visible on the black rain boots."
+        }
+      ]
+    },
+    "raw": "```json\n{\"checks\": [{\"requirement\": \"the coat is beige\", \"met\": true, \"evidence\": \"The trench coat is clearly a beige/tan color.\"}, {\"requirement\": \"the boots are black\", \"met\": true, \"evidence\": \"The rubber rain boots are black.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The outfit is displayed on a featureless white mannequin.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": false, \"evidence\": \"Small brand labels or logos are visible on the black rain boots.\"}]}\n```",
+    "usage": {
+      "in": 1699,
+      "out": 323,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": false,
+      "problems": [
+        "1 requirement(s) reported unmet"
+      ],
+      "unmet": [
+        "there is no text or logo in the image"
+      ],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-05",
+    "model": "minimax/minimax-m3",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the shirt is white",
+          "met": true,
+          "evidence": "The shirt on the mannequin is clearly white in color."
+        },
+        {
+          "requirement": "the shorts are khaki",
+          "met": true,
+          "evidence": "The shorts are a tan/khaki color."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The outfit is displayed on a featureless mannequin with a wooden head finial."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": true,
+          "evidence": "No text or logo is visible anywhere in the image."
+        }
+      ]
+    },
+    "raw": "{\"checks\": [{\"requirement\": \"the shirt is white\", \"met\": true, \"evidence\": \"The shirt on the mannequin is clearly white in color.\"}, {\"requirement\": \"the shorts are khaki\", \"met\": true, \"evidence\": \"The shorts are a tan/khaki color.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The outfit is displayed on a featureless mannequin with a wooden head finial.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": true, \"evidence\": \"No text or logo is visible anywhere in the image.\"}]}",
+    "usage": {
+      "in": 1689,
+      "out": 270,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": true,
+      "problems": [],
+      "unmet": [],
+      "missing": [],
+      "extra": []
+    }
+  }
+]

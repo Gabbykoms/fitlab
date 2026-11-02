@@ -1,16 +1,16 @@
 """Exercise the frontend against real routes, SQLite, and private image storage."""
 import os
-from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import httpx
 import pytest
-from playwright.sync_api import expect
 from fakes import png
-from test_browser import sign_up, fill_brief, JOB_TIMEOUT_MS
+from playwright.sync_api import expect
+from test_browser import JOB_TIMEOUT_MS, fill_brief, sign_up
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -73,4 +73,4 @@ def test_real_backend_full_browser_flow(page, real_server):
     page.locator('.confirm-delete').click()
     expect(page.locator('.saved-item')).to_have_count(0)
     assert not errors
-    assert all(url.startswith(real_server) or url.startswith(('data:', 'blob:')) for url in urls)
+    assert all(url.startswith((real_server, 'data:', 'blob:')) for url in urls)

@@ -3,10 +3,11 @@ import asyncio
 import hashlib
 import json
 import logging
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 from starlette.concurrency import run_in_threadpool
+
 import critique
 import db
 import media
@@ -58,7 +59,7 @@ class StylingService:
         except BaseException as exc:
             Path(path).unlink(missing_ok=True)
             if isinstance(exc, sqlite3.IntegrityError):
-                raise ValueError('You already uploaded this item.') from None
+                raise ValueError('You already uploaded this item.') from None  # noqa: TRY004 - callers catch ValueError
             raise
         return {'item': await run_in_threadpool(self.wardrobe_view, row), 'rejected': False}
 
@@ -136,13 +137,14 @@ class StylingService:
                     try:
                         result = await critique.run_option_with_retry(self.provider, brief, weather, refs, index,
                                                                        brief.get('critique_model'),
-                                                                       generation_references=[*refs, *(source_images or [])])
+                                                                       generation_references=[*refs, *(source_images or [])],
+                                                                       requirements=critique.derive_requirements(brief))
                         raw, metadata = result.pop('_raw_bytes'), result.pop('_metadata')
                         path = await run_in_threadpool(media.store_image, self.storage / 'renders', raw, metadata['extension'])
                         paths.append(path)
                         result.pop('image_data_url')
                         return {**result, 'image_path': path}
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001 - per-option catch-all; failure recorded, others continue
                         # Class name only: exception text from upstream libraries can carry request details.
                         log.warning('Job %s option %s failed: %s', job_id, index, type(exc).__name__)
                         return exc
@@ -159,7 +161,7 @@ class StylingService:
             for path in paths:
                 Path(path).unlink(missing_ok=True)
             raise
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - job-level catch-all; stores sanitized failure
             # Store only controlled wording: ProviderError messages are written by us; anything else
             # may carry upstream text or credentials, so it gets the generic sentence.
             log.warning('Job %s failed: %s', job_id, type(exc).__name__)

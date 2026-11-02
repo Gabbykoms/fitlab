@@ -443,6 +443,32 @@ def _round_half_up(value):
     return floor
 
 
+def derive_requirements(brief):
+    """Project the brief into the checklist the critic is asked to confirm.
+
+    Pure function over the brief fields (CRT-21). No model call, no I/O.
+    Each entry is a short self-contained sentence that the prompt quotes
+    back to the model and the checker compares against.
+    """
+    out = []
+    occasion = (brief.get("occasion") or "").strip()
+    aesthetic = (brief.get("aesthetic") or "").strip()
+    styling = (brief.get("styling_preference") or "").strip()
+    if occasion:
+        out.append(f"the outfit suits the occasion: {occasion}")
+    if aesthetic:
+        out.append(f"the outfit matches the requested aesthetic: {aesthetic}")
+    if styling:
+        out.append(f"the styling preference is {styling}")
+    if brief.get("notes"):
+        # One sentence per requirement. Notes are capped at 1000 characters.
+        for sent in re.split(r"(?<=[.!?])\s+", brief["notes"].strip()):
+            sent = sent.strip()
+            if sent:
+                out.append(f"the user's note is honoured: {sent}")
+    return out
+
+
 def compute_overall(scores, *, weather_available, references_supplied):
     """Apply the Section 7.4 weighting rule.
 
@@ -518,12 +544,18 @@ def _normalize_payload(doc, *, weather_available, references_supplied):
     return out
 
 
-def finalize_reply(raw_text, *, weather_available, references_supplied):
+def finalize_reply(raw_text, *, weather_available, references_supplied, requirements=None):
     """Parse, validate, compute, and produce the server-authoritative payload.
 
-    On success returns ``{"status": "ok", "payload": <section 7 doc>}``.
+    On success returns ``{"status": "ok", "payload": <section 7 doc>}``
+    plus ``"checks"``: the server-side checklist verdict (CRT-22) when
+    ``requirements`` was supplied, otherwise ``None``.
     On failure returns ``{"status": "failed", "error": "invalid_response"}``.
     The raw model text is never returned (Section 7.8).
+
+    ``checks`` is opaque to Section 7: a missing or malformed ``checks``
+    array never fails the critique, changes the score, or triggers a
+    retry. The checker reports it and the critique proceeds.
     """
     try:
         doc = parse_reply(raw_text)
@@ -555,13 +587,21 @@ def finalize_reply(raw_text, *, weather_available, references_supplied):
     normalized["retry_recommended"] = retry_recommended
     normalized["retry_reason"] = retry_reason
 
-    return {"status": "ok", "payload": normalized}
+    # CRT-22: the checklist verdict travels beside the payload, never inside
+    # it, and never changes the Section 7 verdict above.
+    checks_verdict = None
+    if requirements is not None:
+        from checker import check
+        checks_verdict = check(requirements, normalized)
+
+    return {"status": "ok", "payload": normalized, "checks": checks_verdict}
 
 
 # Network integration is isolated from the pure parser above for offline tests.
-async def critique_image(provider, image, brief, weather, references, attempt=1, model=None):
-    from provider import ProviderError
+async def critique_image(provider, image, brief, weather, references, attempt=1, model=None, *, requirements=None):
     import time
+
+    from provider import ProviderError
     actual_model = model or provider.critique_model
     example = {
         'schema_version': '1.0', 'attempt': attempt, 'model': actual_model,
@@ -570,6 +610,8 @@ async def critique_image(provider, image, brief, weather, references, attempt=1,
                    'upload_fidelity': 80 if references else None},
         'summary': 'Explain the visible fit to the brief in 1–3 sentences.',
         'matches': [], 'mismatches': [], 'uncertainty': [],
+        'checks': [{'requirement': '<verbatim from the Requirements list>',
+                    'met': True, 'evidence': 'what you see in the image that confirms it'}],
         'weather_assessed': bool(weather.get('available')), 'upload_fidelity_assessed': bool(references),
         'retry_recommended': False, 'retry_reason': '',
     }
@@ -580,6 +622,10 @@ async def critique_image(provider, image, brief, weather, references, attempt=1,
         'State fabric warmth, waterproofing, brand and other properties not visible in uncertainty, never assert them. '
         'Return only a JSON object using this exact shape (overall may be omitted; the server computes it): ' + json.dumps(example) +
         '. Scores must reflect your assessment, not the example. '
+        'checks is a list (one entry per requirement the server derived from the brief, see Requirements below) '
+        'of objects {requirement, met, evidence}; requirement text MUST match the server-supplied sentence exactly; '
+        'met is a boolean; evidence is 1–300 chars naming what you saw. '
+        'Do not invent checks that were not in the Requirements list. '
         'summary 1–600 chars. matches and uncertainty: at most 8 strings each, 1–300 chars. '
         'mismatches: at most 8 objects, each with code, severity, affected_pieces (up to 6 names/ids), '
         'explanation (1–500 chars). Allowed codes: ' + ', '.join(sorted(MISMATCH_CODES)) +
@@ -587,9 +633,11 @@ async def critique_image(provider, image, brief, weather, references, attempt=1,
         'Retry when weighted overall <70 or a major/critical mismatch exists. Weights: occasion30 aesthetic25 '
         'styling20 weather15 upload_fidelity10; exclude unassessed weights. '
         'Use a nonempty retry_reason iff recommending retry. Brief: ' + json.dumps(brief) +
-        '. Weather: ' + json.dumps(weather))
+        '. Weather: ' + json.dumps(weather) +
+        '. Requirements: ' + json.dumps(requirements or []))
     started = time.monotonic()
     usage = {'cost_usd': None}
+    result = None
     try:
         raw, usage = await provider.vision(prompt, [*references, image], model=actual_model)
         doc = parse_reply(raw)
@@ -604,12 +652,15 @@ async def critique_image(provider, image, brief, weather, references, attempt=1,
                 doc['overall'] = compute_overall(doc['scores'], weather_available=weather.get('available', False),
                                                  references_supplied=bool(references))
         result = finalize_reply(json.dumps(doc), weather_available=weather.get('available', False),
-                                references_supplied=bool(references))
+                                references_supplied=bool(references),
+                                requirements=requirements)
         payload = result.get('payload') or {'status': 'failed', 'error': 'invalid_response'}
     except (ProviderError, CritiqueParseError, ValueError, TypeError, KeyError):
         payload = {'status': 'failed', 'error': 'invalid_response'}
+    checks_verdict = result.get('checks') if result is not None else None
     return {**payload, 'model': actual_model, 'attempt': attempt,
-            'usage': usage, 'latency_ms': round((time.monotonic() - started) * 1000)}
+            'usage': usage, 'latency_ms': round((time.monotonic() - started) * 1000),
+            'checks': checks_verdict}
 
 
 async def check_upload(provider, image):
@@ -629,15 +680,15 @@ async def check_upload(provider, image):
         raise ProviderError('We could not verify this upload. Please try again.') from None
 
 
-async def run_option_with_retry(provider, brief, weather, references, index=0, model=None, generation_references=None):
-    from generator import generate_image, extract_pieces
+async def run_option_with_retry(provider, brief, weather, references, index=0, model=None, generation_references=None, *, requirements=None):
+    from generator import extract_pieces, generate_image
     history, generation_usage = [], []
     feedback = ''
     for attempt in range(1, 4):
         generated = await generate_image(provider, brief, weather, generation_references if generation_references is not None else references, index, feedback)
         generation_usage.append(generated['usage'])
         critique = await critique_image(provider, generated['image_data_url'], brief, weather, references,
-                                         attempt, model)
+                                         attempt, model, requirements=requirements)
         history.append(critique)
         if not critique.get('retry_recommended'):
             break
