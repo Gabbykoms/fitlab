@@ -1,4 +1,6 @@
 """SQLite persistence with ownership-scoped styling queries."""
+import json
+import secrets
 import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
@@ -102,8 +104,6 @@ def delete_session(path, token):
 
 # Styling persistence. Paths are private; API serializers load image bytes only
 # after the caller has passed an ownership-filtered lookup.
-import json
-import secrets
 
 
 def init_styling(path):

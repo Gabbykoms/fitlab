@@ -1,5 +1,6 @@
 """Real backend account/session checks using an isolated SQLite database."""
 import sys
+from datetime import UTC
 from pathlib import Path
 
 import pytest
@@ -9,10 +10,8 @@ ROOT = Path(__file__).resolve().parent.parent
 # Keep direct pytest invocation working without packaging the application.
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from datetime import UTC
-
-import db
-from app import COOKIE, create_app, hasher
+import db  # noqa: E402 (needs ROOT on sys.path)
+from app import COOKIE, create_app, hasher  # noqa: E402
 
 CREDS = {'username': 'test-user', 'password': 'correct-horse-1'}
 

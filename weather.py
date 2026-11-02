@@ -17,16 +17,23 @@ def unavailable(event_date, event_time, city=None, lat=None, lon=None, reason='L
                 unavailable_reason=reason)
 
 
+CONDITIONS = (
+    ((0,), 'Clear'),
+    ((1, 2), 'Partly cloudy'),
+    ((3,), 'Overcast'),
+    ((45, 48), 'Fog'),
+    ((51, 53, 55), 'Drizzle'),
+    ((56, 57, 66, 67), 'Freezing rain'),
+    ((61, 63, 65, 80, 81, 82), 'Rain'),
+    ((71, 73, 75, 77, 85, 86), 'Snow'),
+    ((95, 96, 99), 'Thunderstorm'),
+)
+
+
 def condition(code):
-    if code == 0: return 'Clear'
-    if code in (1, 2): return 'Partly cloudy'
-    if code == 3: return 'Overcast'
-    if code in (45, 48): return 'Fog'
-    if code in (51, 53, 55): return 'Drizzle'
-    if code in (56, 57, 66, 67): return 'Freezing rain'
-    if code in (61, 63, 65, 80, 81, 82): return 'Rain'
-    if code in (71, 73, 75, 77, 85, 86): return 'Snow'
-    if code in (95, 96, 99): return 'Thunderstorm'
+    for codes, label in CONDITIONS:
+        if code in codes:
+            return label
     return 'Unknown conditions'
 
 
