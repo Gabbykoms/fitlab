@@ -498,3 +498,13 @@ def test_finalize_fills_the_missing_weather_and_upload_fidelity_dimensions(doc):
     assert result["payload"]["scores"]["weather"] is None
     assert result["payload"]["scores"]["upload_fidelity"] is None
     assert result["payload"]["overall"] == 84
+
+
+def test_empty_requirements_still_succeed(doc):
+    """A brief that projects no requirements: the critique succeeds and the checklist verdict is ok."""
+    doc["checks"] = []
+    result = finalize_reply(json.dumps(doc), **NO_WEATHER_NO_REFS, requirements=[])
+    assert result["status"] == "ok"
+    assert result["payload"]["overall"] == 84
+    assert result["checks"]["ok"] is True
+    assert result["checks"]["problems"] == []

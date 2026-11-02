@@ -10,7 +10,6 @@ This module is imported by ``tests.test_checker`` and by
 It must not import ``openrouter``; the offline-safety fixture in
 ``tests/conftest.py`` asserts that.
 """
-import json
 import re
 
 
@@ -24,7 +23,8 @@ def check(requirements, critique):
     a JSON object.
 
     Returns a verdict: ``ok`` is ``True`` iff every requirement was answered,
-    only those requirements were answered, and every answer was ``True``.
+    only those requirements were answered, every answer was ``True``, and
+    no entry was malformed (not an object, or no string ``requirement``).
     ``problems`` is a list of human-readable summaries. ``unmet``,
     ``missing``, and ``extra`` are lists of requirement text, exactly as
     the brief or the critic wrote it.
@@ -39,9 +39,12 @@ def check(requirements, critique):
         }
 
     answered = {}
+    malformed = 0
     for c in critique["checks"]:
         if isinstance(c, dict) and isinstance(c.get("requirement"), str):
             answered[_norm(c["requirement"])] = c
+        else:
+            malformed += 1
 
     wanted = {_norm(r): r for r in requirements}
 
@@ -55,6 +58,8 @@ def check(requirements, critique):
     ]
 
     problems = []
+    if malformed:
+        problems.append(f"critic returned {malformed} malformed check(s)")
     if missing:
         problems.append(f"critic did not answer {len(missing)} requirement(s)")
     if extra:
@@ -69,25 +74,6 @@ def check(requirements, critique):
         "missing": missing,
         "extra": extra,
     }
-
-
-def extract_json(text):
-    """The JSON object inside a reply, or ``None``. Models wrap JSON in fences or prose.
-
-    The regex is greedy and ``re.DOTALL``, so it captures from the first ``{``
-    to the last ``}``. If that span is not valid JSON, or is not an object,
-    the reply is treated as a failed critique: returns ``None``. Never raises.
-    """
-    if text is None:
-        return None
-    m = re.search(r"\{.*\}", text, re.DOTALL)
-    if not m:
-        return None
-    try:
-        obj = json.loads(m.group(0))
-    except json.JSONDecodeError:
-        return None
-    return obj if isinstance(obj, dict) else None
 
 
 def _norm(s):

@@ -109,3 +109,21 @@ def test_evidence_manifest_is_well_formed():
         assert len(reqs) == 4, f"{entry.get('name')!r}: expected 4 requirements; got {len(reqs)}"
         for req in reqs:
             assert isinstance(req, str) and req, "each requirement must be a non-empty string"
+
+
+def test_malformed_entries_are_counted():
+    """Entries that are not objects, or lack a string requirement, are reported, not dropped silently."""
+    requirements = ["the coat is long"]
+    critique = {
+        "checks": [
+            {"requirement": "the coat is long", "met": True, "evidence": "knee-length"},
+            "not a check object",
+            {"requirement": 7, "met": True, "evidence": "seven"},
+        ]
+    }
+    result = check(requirements, critique)
+    assert result["ok"] is False
+    assert "critic returned 2 malformed check(s)" in result["problems"]
+    assert result["unmet"] == []
+    assert result["missing"] == []
+    assert result["extra"] == []
