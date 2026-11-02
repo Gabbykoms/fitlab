@@ -1231,11 +1231,11 @@ source jobs reference them, even after a saved-look entry is deleted; retention 
 
 ---
 
-## 8. Week 6: image set and checklist critique (Patrick, 2026-11-02)
+## 11. Week 6: image set and checklist critique (Patrick, 2026-11-02)
 
 FitLab's critique (Section 7) asks one model for scores and trusts its structure after validation. This section adds a narrower check beside it, for evaluation: a yes/no **checklist** made from a brief's requirements, answered by a vision model and **compared in code**, plus a narrow read of any text the image must contain. It does not change the app's live critique or retry rule.
 
-### 8.1 Component G: checklist checker (`checklist.py`)
+### 11.1 Component G: checklist checker (`checklist.py`)
 - **What it does:** pure functions, no model and no key:
   - `extract_json`: the JSON object inside a reply, or `None`.
   - `check_checklist`: every requirement answered, none invented, each met.
@@ -1252,7 +1252,7 @@ FitLab's critique (Section 7) asks one model for scores and trusts its structure
   - **G-6.** Expected text is compared in code: `"HIKE"` vs `"HIIKE"` is a mismatch.
   - **G-7.** Two critique files: every requirement or text read where they differ is listed, and nothing when they agree.
 
-### 8.2 Component H: image-set evaluation (`eval.py --imageset`, `imagesets/`)
+### 11.2 Component H: image-set evaluation (`eval.py --imageset`, `imagesets/`)
 - **What it does:** `python eval.py --imageset imagesets/<set>/manifest.json --output out.json` sends each image to every model in `--models`. Each model gets two questions: the checklist (G) and the narrow text read. It records each model's checklist result and text match, and the disagreements between the first two models. This is the cheap-vs-strong comparison CHECKS.md lists as pending, run on images with known requirements.
 - **Generator for image sets:** `imagesets/generate.py` calls OpenRouter's Image API through the `openrouter` SDK with `black-forest-labs/flux.2-klein-4b`, fixed seeds, and writes `manifest.json` (prompt, seed, model, media type, cost from `usage.cost`).
 - **Language:** Python.
@@ -1262,6 +1262,8 @@ FitLab's critique (Section 7) asks one model for scores and trusts its structure
 - **First set:** `imagesets/patrick-occasions/`, five occasions (wedding, hike, interview, game day, beach) on a faceless mannequin. Each image has a placard naming the occasion. Seeds 601–605.
 - **Behavior H-1:** with no key, `eval.py` exits before any call. **H-2:** one vision call per image per question per model; nothing is billed from tests.
 
-### 8.3 Dependencies added
+### 11.3 Dependencies added
 - `openrouter`: the OpenRouter Python SDK, used **only** by `imagesets/generate.py`. **Why:** the Image API reply (`data[0].b64_json`, `media_type`, `usage.cost`) is typed by the SDK, and the image-set generator is a standalone script that shouldn't depend on the app's async provider. Imported lazily, so the app and the tests never load it.
 - `ruff`: the linter the pre-push gate and `gate.yml` run (`ruff check .`). Listed so the gate installs it from `requirements.txt`.
+
+**Approved by:** Patrick Manswell, 2026-11-02, before any code: this section was committed in `a3b556e`, before the failing tests (`cbbd839`) and the implementation. Team approval is the review of the pull request that carries it.

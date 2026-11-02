@@ -1,9 +1,9 @@
 """Generate an image set through OpenRouter's Image API and write a manifest.
 
-    python3 generate.py prompts.json --out images                       # needs OPENROUTER_API_KEY
-    python3 generate.py prompts.json --only occasion-01 --out images-seed
+    python3 generate.py prompts.json --out imagesets/<set>              # needs OPENROUTER_API_KEY
+    python3 generate.py prompts.json --only occasion-01 --out /tmp/seed-check
     python3 generate.py prompts.json --only occasion-01 \\
-        --model google/gemini-3.1-flash-lite-image --out images-nb
+        --model google/gemini-3.1-flash-lite-image --out /tmp/compare
 
 One billed call per prompt. The manifest records prompt, seed, model, media type, file,
 seconds and the cost from the reply, so the critic and the checker never guess what was asked.
@@ -40,7 +40,7 @@ def write_manifest(out: Path, entries: list[dict]) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("prompts", type=Path)
-    ap.add_argument("--out", type=Path, default=Path("images"))
+    ap.add_argument("--out", type=Path, required=True, help="the set's folder, e.g. imagesets/<set>")
     ap.add_argument("--model", default=os.environ.get("IMAGE_MODEL", DEFAULT_MODEL))
     ap.add_argument("--aspect-ratio", default="3:4")
     ap.add_argument("--only", help="generate just the prompt with this name")
@@ -63,10 +63,11 @@ def main() -> None:
         started = time.time()
         try:
             result = generate_one(client, args.model, prompt["prompt"], prompt["seed"], args.aspect_ratio)
-        except Exception as exc:                    # keep what was already generated
+        except Exception as exc:                    # any SDK or network error: keep what was already generated
             write_manifest(args.out, entries)
-            sys.exit(f"{prompt['name']}: image request failed ({type(exc).__name__}: {exc}). "
-                     f"{len(entries)} image(s) kept in {args.out}.")
+            status = getattr(exc, "status_code", None)  # never print the error body (CLAUDE.md)
+            sys.exit(f"{prompt['name']}: image request failed ({type(exc).__name__}"
+                     f"{f', HTTP {status}' if status else ''}). {len(entries)} image(s) kept in {args.out}.")
         path = args.out / f"{prompt['name']}.{EXTENSIONS.get(result['media_type'], 'bin')}"
         path.write_bytes(result["bytes"])
         entry = manifest_entry(prompt, args.model, args.aspect_ratio, path.name, result, time.time() - started)

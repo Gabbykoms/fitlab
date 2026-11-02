@@ -1,4 +1,4 @@
-"""No-key tests for the checklist checker (spec.md section 8.1, behaviors G-1 to G-7)."""
+"""No-key tests for the checklist checker (spec.md section 11.1, behaviors G-1 to G-7)."""
 from pathlib import Path
 import sys
 

@@ -1,8 +1,10 @@
-"""No-key tests for eval.py --imageset (spec.md 8.2): the checklist path with a fake provider."""
+"""No-key tests for eval.py --imageset (spec.md 11.2): the checklist path with a fake provider."""
 import io
 import json
 from pathlib import Path
 import sys
+
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -53,6 +55,7 @@ def test_imageset_checks_each_model_and_reports_disagreements(tmp_path):
     assert not by_model['mimo']['check']['ok'] and by_model['mimo']['text_matches'] is True
     assert report['disagreements'][0]['name'] == 'occasion-02'
     assert len(provider.calls) == 4                   # one checklist and one text read per model
+    assert report['compared_models'] == ['m3', 'mimo']
 
 
 def test_imageset_without_key_stops_before_any_call(tmp_path):
@@ -60,10 +63,6 @@ def test_imageset_without_key_stops_before_any_call(tmp_path):
         def configured(self):
             return False
     provider = NoKey({})
-    try:
+    with pytest.raises(SystemExit, match='OPENROUTER_API_KEY'):
         run_async(lambda: evaluation.evaluate_imageset(make_set(tmp_path), ['m3'], provider))
-    except SystemExit as exc:
-        assert 'OPENROUTER_API_KEY' in str(exc)
-    else:
-        raise AssertionError('expected SystemExit')
     assert provider.calls == []

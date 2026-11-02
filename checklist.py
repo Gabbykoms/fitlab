@@ -1,4 +1,4 @@
-"""Checklist critique checker (spec.md section 8.1). Pure functions: no model, no key, no network.
+"""Checklist critique checker (spec.md section 11.1). Pure functions: no model, no key, no network.
 
 The critic is a model, so its answer is data to check, not a verdict. This module can say
 whether the critic answered every requirement, answered only those, and said each was met,

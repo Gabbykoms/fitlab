@@ -4,7 +4,7 @@ Example: python eval.py --cases eval-cases.json --output eval-results.json
 Input: [{"image": "path/to/outfit.png", "brief": {...}, "weather": {...},
          "references": ["path/to/garment.png"]}]
 
-Image sets (spec.md section 8.2): python eval.py --imageset imagesets/<set>/manifest.json --output out.json
+Image sets (spec.md section 11.2): python eval.py --imageset imagesets/<set>/manifest.json --output out.json
 asks each model a yes/no checklist and a narrow text read per image, checks both in code
 (checklist.py), and lists where the first two models disagree.
 Nothing runs unless this command is invoked. Supply OPENROUTER_API_KEY in the environment.
@@ -68,7 +68,8 @@ async def evaluate_imageset(manifest_path, models, provider=None):
             results.append(await checklist_one(provider, model, image, entry))
     per_model = [[r for r in results if r['model'] == m] for m in models[:2]]
     diffs = disagreements(*per_model) if len(per_model) == 2 else []
-    return {'results': results, 'disagreements': diffs}
+    compared = models[:2] if len(models) >= 2 else []
+    return {'results': results, 'disagreements': diffs, 'compared_models': compared}
 
 
 if __name__ == '__main__':
@@ -86,7 +87,8 @@ if __name__ == '__main__':
             verdict = 'ok' if r['check']['ok'] else '; '.join(r['check']['problems'])
             text = f"  text read {r['text_read']!r} ({'match' if r['text_matches'] else 'MISMATCH'})" if 'text_read' in r else ''
             print(f"{r['name']} [{r['model']}]: {verdict}{text}")
-        print(f"{len(report['disagreements'])} image(s) where the first two models disagree. Look at those yourself.")
+        print(f"{len(report['disagreements'])} image(s) where {' and '.join(report['compared_models']) or 'the models'} disagree "
+              f"(only the first two models are compared). Look at those yourself.")
     else:
         cases = json.loads(Path(args.cases).read_text())
         results = asyncio.run(evaluate(cases, args.models))
