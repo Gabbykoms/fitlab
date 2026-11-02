@@ -2,6 +2,8 @@
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import json
+import secrets
 import sqlite3
 
 SESSION_SECONDS = 30 * 86400
@@ -102,8 +104,6 @@ def delete_session(path, token):
 
 # Styling persistence. Paths are private; API serializers load image bytes only
 # after the caller has passed an ownership-filtered lookup.
-import json
-import secrets
 
 
 def init_styling(path):
