@@ -50,7 +50,7 @@ def _answers(critique):
 
 def check_checklist(requirements, critique):
     """Compare the critic's checklist with the requirements it was given (G-1, G-3, G-4, G-5)."""
-    if critique is None or not isinstance(critique.get('checks'), list):
+    if not isinstance(critique, dict) or not isinstance(critique.get('checks'), list):
         return {'ok': False, 'problems': [NOT_A_CHECKLIST], 'unmet': [],
                 'missing': list(requirements), 'extra': []}
     answered = _answers(critique)

@@ -82,3 +82,10 @@ def test_g7_disagreements_between_two_critics():
     assert len(diffs) == 1
     assert {d['requirement'] for d in diffs[0]['diffs']} == {REQS[1], '<text read>'}
     assert disagreements(a, a) == []
+
+
+def test_g1_a_critique_that_is_not_a_dict_is_a_failed_critique():
+    for not_a_dict in (['checks'], 'met', 42):
+        result = check_checklist(REQS, not_a_dict)
+        assert not result['ok']
+        assert result['missing'] == REQS
