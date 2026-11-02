@@ -1,8 +1,10 @@
 """Offline provider contract doubles; never imported by production code."""
 import base64
-from io import BytesIO
 import json
+from io import BytesIO
+
 from PIL import Image
+
 from provider import ProviderError
 from weather import unavailable
 
@@ -24,6 +26,10 @@ class FakeProvider:
         self.reject = False
         self.bad_critique = False
         self.no_images = False
+        # When set, this list is injected into the standard critique
+        # response as the ``checks`` array. None means the field is
+        # absent (the default for existing tests).
+        self.checks_payload = None
 
     def configured(self): return True
 
@@ -52,6 +58,8 @@ class FakeProvider:
                 'mismatches': [], 'uncertainty': ['Fabric warmth cannot be established.'],
                 'weather_assessed': weather_available, 'upload_fidelity_assessed': refs,
                 'retry_recommended': self.low, 'retry_reason': 'low score' if self.low else ''}
+            if self.checks_payload is not None:
+                value['checks'] = self.checks_payload
         return json.dumps(value), {'cost_usd': .001}
 
 

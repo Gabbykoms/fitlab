@@ -669,6 +669,7 @@ The user message carries the image(s) as `image_url` parts with base64 data URIs
 | `json` (stdlib) | Parsing and validating the model's response |
 | `re` (stdlib) | Stripping a reasoning trace or a fenced code block if one appears despite the flag |
 | `generator.py` | Only the `Brief` type and the image bytes; the critique module does not call the image model |
+| `checker.py` | Pure module that compares the model-returned `checks` array against the brief's projected requirements. Stdlib only — no `openrouter`, no `httpx` — so importing it never loads the SDK. |
 
 The critique module has **no dependency on `app.py` and no dependency on `db.py`**, so `tests/test_critique.py` can drive the entire retry logic with a fake generator and a fake critic.
 
@@ -694,6 +695,8 @@ The critique module has **no dependency on `app.py` and no dependency on `db.py`
 - **CRT-18** — Every critique call records token usage and computed cost, and the per-attempt cost is logged and returned in `CritiqueResult.usage`.
 - **CRT-19** — The critique model name used is recorded on the result and on the outfit option, so the eval can attribute scores to a model and the user can see which model judged the look.
 - **CRT-20** — The model is instructed to describe only what is visible. The critique never asserts that a look is "comfortable", "warm", or "waterproof" — those go in `uncertainty` unless the image genuinely shows them.
+- **CRT-21** — **Checklist projection.** `critique.derive_requirements(brief)` projects `brief.occasion`, `brief.aesthetic`, `brief.styling_preference`, and the sentences of `brief.notes` (split on sentence-final punctuation) into a list of self-contained requirement sentences. The projection is pure: no model call, no I/O.
+- **CRT-22** — **Server-side checker.** When `requirements` is supplied to `finalize_reply` (always, by way of `services.run_job`), the server runs `checker.check(requirements, parsed_payload)` against the parsed critique document's `checks` array and attaches the verdict (`{ok, problems, unmet, missing, extra}`) to the `CritiqueResult` as `checks`. The verdict names what the critic said; it never asserts that the image is wrong, that the critic was wrong, or assigns cause. **`checks` is opaque to §7.** A missing, malformed, or empty `checks` array is the checker's concern, not §7's. The critique status, score, and retry decision are unaffected by the presence or shape of `checks`.
 
 #### Failure handling
 
@@ -874,7 +877,8 @@ generated → critiqued → (pass) ───────────────
 |---|---|---|---|
 | `tests/test_weather.py` | Coordinate lookup, city override, out-of-range handling, provider error, network error, missing-weather fallback, timezone handling | No | No — the HTTP client is injected and mocked |
 | `tests/test_db.py` | Ownership isolation (user A cannot read user B's rows), password hashing, session expiry, idempotent `init_db`, duplicate-username handling, saved-look round trip | No | No — an in-memory or temp-file SQLite database |
-| `tests/test_critique.py` | Payload parsing, schema validation, rubric weighting, mismatch detection, retry triggers, retry ceiling, uncertainty disclosure, the reasoning-off request flag | No | No — the HTTP client is injected and mocked |
+| `tests/test_critique.py` | Payload parsing, schema validation, rubric weighting, mismatch detection, retry triggers, retry ceiling, uncertainty disclosure, the reasoning-off request flag, and that a malformed `checks` array does not affect the §7 verdict | No | No — the HTTP client is injected and mocked |
+| `tests/test_checker.py` | The offline `checker.check` function: ok verdict when all requirements are met and only those were answered, naming of unmet/missing/extra entries, no-cause attribution, plus the manifest-shape assertion | No | No |
 | `tests/test_browser.py` | Key isolation in source and in the network trace, UI element rendering, generation trigger, request inspection, authentication enforcement | No (the test starts `dev_server.py`, an in-memory stub that implements the Section 3.1 API with fake images and critiques) | No |
 | `eval.py` | Cheap-versus-strong critique comparison on real generated outfits, with latency, cost, and agreement recorded in `CHECKS.md` | **Yes** | Yes — this is the one billed script |
 
@@ -921,6 +925,18 @@ The critique contract in Section 7 is written so that `tests/test_critique.py` c
   ],
   "weather_assessed": false,
   "upload_fidelity_assessed": false,
+  "checks": [
+    {
+      "requirement": "the outfit suits the occasion: conference",
+      "met": true,
+      "evidence": "tailored blazer and trousers"
+    },
+    {
+      "requirement": "the outfit matches the requested aesthetic: smart, business, simple",
+      "met": true,
+      "evidence": "neutral palette and clean lines"
+    }
+  ],
   "retry_recommended": false,
   "retry_reason": ""
 }
@@ -946,6 +962,7 @@ The critique contract in Section 7 is written so that `tests/test_critique.py` c
 | `uncertainty` | array of strings | yes | 0–8 entries, each 1–300 characters |
 | `weather_assessed` | boolean | yes | `true` iff weather was available and `scores.weather` is an integer |
 | `upload_fidelity_assessed` | boolean | yes | `true` iff at least one reference image was supplied and `scores.upload_fidelity` is an integer |
+| `checks` | array of objects | no | 0–8 entries. Each entry has `requirement` (1–200 chars), `met` (boolean), `evidence` (1–300 chars). **Opaque to §7 validation** (CRT-22). The server-side checker interprets the array and reports `unmet`/`missing`/`extra`; a missing, malformed, or non-list `checks` value does not fail the critique, change the score, or trigger a retry. |
 | `retry_recommended` | boolean | yes | See 7.6. **Computed server-side.** |
 | `retry_reason` | string | yes | Empty string when `retry_recommended` is `false`; otherwise a one-sentence explanation naming the trigger |
 
@@ -1050,11 +1067,14 @@ When validation fails, the server does not show a partial critique. It emits thi
   "error": "invalid_response" | "provider_error" | "rate_limited" | "timeout",
   "model": "xiaomi/mimo-v2.6-flash",
   "attempt": 1,
-  "raw_excerpt": null
+  "raw_excerpt": null,
+  "checks": null
 }
 ```
 
 `raw_excerpt` is `null` in every response that reaches the client; the raw model text is logged server-side only, so a malformed or unexpected model output is never rendered in the user's browser.
+
+`checks` is `null` whenever the critique failed: no checklist verdict (CRT-22) is produced without a valid critique document.
 
 ---
 

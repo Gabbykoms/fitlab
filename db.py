@@ -1,10 +1,10 @@
 """SQLite persistence with ownership-scoped styling queries."""
-from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 import json
 import secrets
 import sqlite3
+from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 SESSION_SECONDS = 30 * 86400
 
@@ -71,7 +71,7 @@ def get_user_by_name(path, username):
 
 
 def create_session(path, user_id, token, previous_token=None):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with connection(path) as conn:
         if previous_token:
             conn.execute('DELETE FROM sessions WHERE token = ? AND user_id = ?',
@@ -82,7 +82,7 @@ def create_session(path, user_id, token, previous_token=None):
 
 
 def get_session_user(path, token):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with connection(path) as conn:
         row = conn.execute('''SELECT users.id AS user_id, users.username, sessions.expires_at
                               FROM sessions JOIN users ON users.id = sessions.user_id
@@ -135,7 +135,7 @@ def init_styling(path):
 
 
 def now_iso():
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def add_wardrobe_item(path, user_id, category, label, image_path, metadata, byte_size, digest, preflight):

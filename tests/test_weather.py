@@ -1,9 +1,11 @@
-from fakes import run_async
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
 import httpx
 import pytest
-from weather import resolve_weather, FIELDS
+from fakes import run_async
+
+from weather import FIELDS, resolve_weather
 
 
 def request_weather(handler, **kwargs):

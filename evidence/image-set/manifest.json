@@ -1,0 +1,92 @@
+[
+  {
+    "name": "image-01",
+    "prompt": "A tailored navy blazer over a crisp white shirt, paired with dark tailored trousers, on a featureless mannequin standing against a plain white background. Studio lighting, clean lines, professional job-interview outfit.",
+    "seed": 415,
+    "requirements": [
+      "the blazer is navy",
+      "the shirt is white",
+      "the outfit is on a mannequin, not a real person",
+      "there is no text or logo in the image"
+    ],
+    "expected_text": null,
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "1:1",
+    "file": "image-01.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.014,
+    "seconds": 3.9
+  },
+  {
+    "name": "image-02",
+    "prompt": "A pale blue floral midi dress, on a featureless mannequin standing against a plain white background. Soft natural light, summer-wedding-guest outfit, lightweight fabric.",
+    "seed": 416,
+    "requirements": [
+      "the dress is pale blue",
+      "the dress is midi length, below the knee",
+      "the outfit is on a mannequin, not a real person",
+      "there is no text or logo in the image"
+    ],
+    "expected_text": null,
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "1:1",
+    "file": "image-02.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.014,
+    "seconds": 4.0
+  },
+  {
+    "name": "image-03",
+    "prompt": "A red puffer jacket with black jeans and a grey beanie, on a featureless mannequin standing against a plain white background. Cool diffused light, winter-walk outfit.",
+    "seed": 417,
+    "requirements": [
+      "the jacket is red",
+      "the beanie is grey",
+      "the outfit is on a mannequin, not a real person",
+      "there is no text or logo in the image"
+    ],
+    "expected_text": null,
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "1:1",
+    "file": "image-03.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.014,
+    "seconds": 3.9
+  },
+  {
+    "name": "image-04",
+    "prompt": "A beige trench coat with black rubber rain boots, dark trousers, and an umbrella at the side, on a featureless mannequin standing against a plain white background. Overcast soft light, rainy-commute outfit.",
+    "seed": 418,
+    "requirements": [
+      "the coat is beige",
+      "the boots are black",
+      "the outfit is on a mannequin, not a real person",
+      "there is no text or logo in the image"
+    ],
+    "expected_text": null,
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "1:1",
+    "file": "image-04.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.014,
+    "seconds": 3.3
+  },
+  {
+    "name": "image-05",
+    "prompt": "A white linen shirt with khaki shorts and sandals, on a featureless mannequin standing against a plain white background. Bright sunny light, beach-day outfit.",
+    "seed": 419,
+    "requirements": [
+      "the shirt is white",
+      "the shorts are khaki",
+      "the outfit is on a mannequin, not a real person",
+      "there is no text or logo in the image"
+    ],
+    "expected_text": null,
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "1:1",
+    "file": "image-05.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.014,
+    "seconds": 3.3
+  }
+]

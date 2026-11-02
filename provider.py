@@ -1,6 +1,7 @@
 """OpenRouter transport. Never propagate provider text or credentials in errors."""
 import logging
 import os
+
 import httpx
 
 DEFAULT_IMAGE_MODEL = 'google/gemini-3.1-flash-image'
@@ -74,7 +75,7 @@ class OpenRouter:
         try:
             text = result['choices'][0]['message']['content']
             if not isinstance(text, str):
-                raise ValueError()
+                raise ValueError()  # noqa: TRY004 - caught as ValueError just below
             return text, usage_of(result)
         except (KeyError, IndexError, TypeError, ValueError):
             raise ProviderError('The review service returned an invalid response.') from None

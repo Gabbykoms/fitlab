@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
+
 from checklist import CHECKLIST_PROMPT, TEXT_PROMPT, check_checklist, disagreements, extract_json, text_matches
 from critique import critique_image
 from media import read_image

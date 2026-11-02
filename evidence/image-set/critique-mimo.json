@@ -1,0 +1,215 @@
+[
+  {
+    "name": "image-01",
+    "model": "xiaomi/mimo-v2.6-flash",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the blazer is navy",
+          "met": true,
+          "evidence": "The blazer is clearly a deep navy blue color."
+        },
+        {
+          "requirement": "the shirt is white",
+          "met": true,
+          "evidence": "The dress shirt visible under the blazer is crisp white."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The figure has a smooth, featureless white head and hands typical of a mannequin."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": true,
+          "evidence": "The background is plain white and no text or logos are visible anywhere."
+        }
+      ]
+    },
+    "raw": "{\"checks\": [{\"requirement\": \"the blazer is navy\", \"met\": true, \"evidence\": \"The blazer is clearly a deep navy blue color.\"}, {\"requirement\": \"the shirt is white\", \"met\": true, \"evidence\": \"The dress shirt visible under the blazer is crisp white.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The figure has a smooth, featureless white head and hands typical of a mannequin.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": true, \"evidence\": \"The background is plain white and no text or logos are visible anywhere.\"}]}",
+    "usage": {
+      "in": 1193,
+      "out": 160,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": true,
+      "problems": [],
+      "unmet": [],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-02",
+    "model": "xiaomi/mimo-v2.6-flash",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the dress is pale blue",
+          "met": true,
+          "evidence": "The dress fabric is a light, pale blue color with a floral pattern."
+        },
+        {
+          "requirement": "the dress is midi length, below the knee",
+          "met": true,
+          "evidence": "The hemline of the dress falls well below the knee area, characteristic of a midi length."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The figure displaying the dress has a featureless white head and smooth plastic-like skin texture typical of a mannequin."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": true,
+          "evidence": "The image contains only the mannequin and dress against a white background with no visible text or logos."
+        }
+      ]
+    },
+    "raw": "```json\n{\"checks\": [{\"requirement\": \"the dress is pale blue\", \"met\": true, \"evidence\": \"The dress fabric is a light, pale blue color with a floral pattern.\"}, {\"requirement\": \"the dress is midi length, below the knee\", \"met\": true, \"evidence\": \"The hemline of the dress falls well below the knee area, characteristic of a midi length.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The figure displaying the dress has a featureless white head and smooth plastic-like skin texture typical of a mannequin.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": true, \"evidence\": \"The image contains only the mannequin and dress against a white background with no visible text or logos.\"}]}\n```",
+    "usage": {
+      "in": 1191,
+      "out": 192,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": true,
+      "problems": [],
+      "unmet": [],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-03",
+    "model": "xiaomi/mimo-v2.6-flash",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the jacket is red",
+          "met": true,
+          "evidence": "The mannequin is wearing a puffy jacket that is clearly red in color."
+        },
+        {
+          "requirement": "the beanie is grey",
+          "met": true,
+          "evidence": "The hat on the mannequin's head is a grey knit beanie."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The figure has a featureless white face and hands, indicating it is a mannequin."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": false,
+          "evidence": "There is a small rectangular patch or tag visible on the left sleeve of the jacket."
+        }
+      ]
+    },
+    "raw": "```json\n{\"checks\": [{\"requirement\": \"the jacket is red\", \"met\": true, \"evidence\": \"The mannequin is wearing a puffy jacket that is clearly red in color.\"}, {\"requirement\": \"the beanie is grey\", \"met\": true, \"evidence\": \"The hat on the mannequin's head is a grey knit beanie.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The figure has a featureless white face and hands, indicating it is a mannequin.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": false, \"evidence\": \"There is a small rectangular patch or tag visible on the left sleeve of the jacket.\"}]}\n```",
+    "usage": {
+      "in": 1188,
+      "out": 177,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": false,
+      "problems": [
+        "1 requirement(s) reported unmet"
+      ],
+      "unmet": [
+        "there is no text or logo in the image"
+      ],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-04",
+    "model": "xiaomi/mimo-v2.6-flash",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the coat is beige",
+          "met": true,
+          "evidence": "The trench coat is clearly a beige or tan color."
+        },
+        {
+          "requirement": "the boots are black",
+          "met": true,
+          "evidence": "The rain boots worn by the figure are black."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The figure has a featureless white head and hands, characteristic of a mannequin."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": false,
+          "evidence": "There are small logos visible on the upper part of the rain boots."
+        }
+      ]
+    },
+    "raw": "{\"checks\": [{\"requirement\": \"the coat is beige\", \"met\": true, \"evidence\": \"The trench coat is clearly a beige or tan color.\"}, {\"requirement\": \"the boots are black\", \"met\": true, \"evidence\": \"The rain boots worn by the figure are black.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The figure has a featureless white head and hands, characteristic of a mannequin.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": false, \"evidence\": \"There are small logos visible on the upper part of the rain boots.\"}]}",
+    "usage": {
+      "in": 1193,
+      "out": 156,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": false,
+      "problems": [
+        "1 requirement(s) reported unmet"
+      ],
+      "unmet": [
+        "there is no text or logo in the image"
+      ],
+      "missing": [],
+      "extra": []
+    }
+  },
+  {
+    "name": "image-05",
+    "model": "xiaomi/mimo-v2.6-flash",
+    "critique": {
+      "checks": [
+        {
+          "requirement": "the shirt is white",
+          "met": true,
+          "evidence": "The shirt visible on the mannequin is clearly white."
+        },
+        {
+          "requirement": "the shorts are khaki",
+          "met": true,
+          "evidence": "The shorts worn by the mannequin are a light khaki or tan color."
+        },
+        {
+          "requirement": "the outfit is on a mannequin, not a real person",
+          "met": true,
+          "evidence": "The figure has smooth, stylized features and a wooden peg for a head, indicating it is a mannequin."
+        },
+        {
+          "requirement": "there is no text or logo in the image",
+          "met": true,
+          "evidence": "The image contains only the mannequin and clothing against a plain background, with no visible text or logos."
+        }
+      ]
+    },
+    "raw": "```json\n{\"checks\": [{\"requirement\": \"the shirt is white\", \"met\": true, \"evidence\": \"The shirt visible on the mannequin is clearly white.\"}, {\"requirement\": \"the shorts are khaki\", \"met\": true, \"evidence\": \"The shorts worn by the mannequin are a light khaki or tan color.\"}, {\"requirement\": \"the outfit is on a mannequin, not a real person\", \"met\": true, \"evidence\": \"The figure has smooth, stylized features and a wooden peg for a head, indicating it is a mannequin.\"}, {\"requirement\": \"there is no text or logo in the image\", \"met\": true, \"evidence\": \"The image contains only the mannequin and clothing against a plain background, with no visible text or logos.\"}]}\n```",
+    "usage": {
+      "in": 1183,
+      "out": 183,
+      "finish": "stop"
+    },
+    "check": {
+      "ok": true,
+      "problems": [],
+      "unmet": [],
+      "missing": [],
+      "extra": []
+    }
+  }
+]

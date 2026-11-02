@@ -31,7 +31,8 @@ When the critique identifies a mismatch with the brief, the app automatically re
 - A detected mismatch triggers an automatic retry for the affected look, followed by a new image-based critique.
 - Each initial or user-requested revised look has a maximum of two automatic retries; successful alternatives are not regenerated because another look failed.
 - After the retry limit, unresolved mismatches are disclosed rather than reported as a successful match.
+- The critic's check items are compared server-side against a checklist projected from the brief. Missing, extra, and unmet items are reported without assigning cause. A missing or malformed check never fails the critique, changes the score, or triggers a retry.
 
-## Open decisions
+## Resolved decisions
 
-- Score scale, scoring categories, and the criteria that trigger an automatic retry.
+- Score scale, scoring categories, and retry criteria are defined in `spec.md` §7.3–§7.4 (score scale and server-computed overall) and §7.6/CRT-11 (retry trigger). The brief checklist and server-side checker are defined in CRT-21/CRT-22.

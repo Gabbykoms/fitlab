@@ -1,6 +1,7 @@
 """HTTP request contracts shared by generation and weather routes."""
-from datetime import date, time, datetime, timezone, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -28,7 +29,7 @@ class Event(BaseModel):
             raise ValueError('Provide both latitude and longitude.')
         # The location's timezone is resolved by weather.py; permit yesterday
         # in UTC so a valid local date west of UTC is not rejected prematurely.
-        if self.event_date < datetime.now(timezone.utc).date() - timedelta(days=1):
+        if self.event_date < datetime.now(UTC).date() - timedelta(days=1):
             raise ValueError('The event date cannot be in the past.')
         return self
 

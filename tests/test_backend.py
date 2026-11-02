@@ -1,11 +1,12 @@
-from datetime import date, timedelta
 import time
+from datetime import date, timedelta
 
 import pytest
-from fastapi.testclient import TestClient
-from app import create_app
-import db
 from fakes import FakeProvider, fake_weather, png
+from fastapi.testclient import TestClient
+
+import db
+from app import create_app
 
 CREDS = {'username': 'alice', 'password': 'correct-horse-1'}
 
@@ -214,6 +215,7 @@ def test_remix_uses_source_image_without_claiming_upload_fidelity(backend):
 
 def test_remix_reference_limit_is_explicit(backend, monkeypatch):
     from unittest.mock import AsyncMock
+
     from fakes import run_async
     client, provider, _ = backend
     service = client.app.state.styling
@@ -223,3 +225,91 @@ def test_remix_reference_limit_is_explicit(backend, monkeypatch):
             await service.submit(1, brief(), 'remix', source_images=['source'] * 3)
     run_async(run)
     assert not provider.images
+
+
+def test_checker_runs_alongside_critique(backend):
+    """When the critic returns ``checks``, the verdict travels with the critique."""
+    from critique import derive_requirements
+    client, provider, _ = backend
+    reqs = derive_requirements(brief())
+    assert len(reqs) >= 2, 'derive_requirements must produce more than one requirement for this test'
+    provider.checks_payload = [
+        {'requirement': req, 'met': True, 'evidence': 'visible in image'}
+        for req in reqs
+    ]
+    job = wait_job(client, client.post('/api/outfits/generate', json=brief()).json()['job_id'])
+    assert job['status'] == 'complete'
+    for option in job['options']:
+        verdict = option['critique']['checks']
+        assert verdict is not None
+        assert verdict['ok'] is True
+        assert verdict['problems'] == []
+        assert verdict['unmet'] == []
+        assert verdict['missing'] == []
+        assert verdict['extra'] == []
+        # The critique verdict is untouched.
+        assert 'error' not in option['critique']
+        assert option['critique']['overall'] == 85
+
+
+def test_checker_runs_alongside_critique_with_missing_answer(backend):
+    """A missing ``checks`` entry shows up in ``missing`` without failing the critique."""
+    from critique import derive_requirements
+    client, provider, _ = backend
+    reqs = derive_requirements(brief())
+    # The critic answered only the first requirement.
+    provider.checks_payload = [
+        {'requirement': reqs[0], 'met': True, 'evidence': 'visible in image'},
+    ]
+    job = wait_job(client, client.post('/api/outfits/generate', json=brief()).json()['job_id'])
+    for option in job['options']:
+        verdict = option['critique']['checks']
+        assert verdict is not None
+        assert verdict['ok'] is False
+        assert reqs[0] not in verdict['missing']
+        # Every requirement the critic forgot is named in ``missing``.
+        for req in reqs[1:]:
+            assert req in verdict['missing']
+        # Critique status and score are unaffected.
+        assert 'error' not in option['critique']
+        assert option['critique']['overall'] == 85
+
+
+def test_malformed_checks_does_not_fail_critique(backend):
+    """A malformed ``checks`` array is reported; the critique proceeds normally."""
+    from critique import derive_requirements
+    client, provider, _ = backend
+    reqs = derive_requirements(brief())
+    # The model's ``checks`` entry is a string, not an object. The checker's
+    # ``check()`` notices and reports it; the critique validator does not.
+    provider.checks_payload = ['this is not a check object']
+    job = wait_job(client, client.post('/api/outfits/generate', json=brief()).json()['job_id'])
+    for option in job['options']:
+        assert 'error' not in option['critique'], option['critique']
+        assert option['critique']['overall'] == 85
+        assert option['critique']['retry_recommended'] is False
+        verdict = option['critique']['checks']
+        assert verdict is not None
+        assert verdict['ok'] is False
+        # Every requirement is in ``missing`` because no check answered them.
+        for req in reqs:
+            assert req in verdict['missing']
+
+
+def test_checks_as_non_list_is_not_a_checklist(backend):
+    """``checks`` that is not a list is reported as "not the JSON checklist"."""
+    from critique import derive_requirements
+    client, provider, _ = backend
+    reqs = derive_requirements(brief())
+    # The model's ``checks`` is a string, not a list. ``check()`` notices.
+    provider.checks_payload = 'not a list'
+    job = wait_job(client, client.post('/api/outfits/generate', json=brief()).json()['job_id'])
+    for option in job['options']:
+        assert 'error' not in option['critique'], option['critique']
+        assert option['critique']['overall'] == 85
+        verdict = option['critique']['checks']
+        assert verdict is not None
+        assert verdict['ok'] is False
+        assert 'critique was not the JSON checklist that was asked for' in verdict['problems']
+        for req in reqs:
+            assert req in verdict['missing']

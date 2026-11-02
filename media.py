@@ -1,9 +1,10 @@
 """Validated image bytes and private filesystem storage."""
 import base64
-from io import BytesIO
-from pathlib import Path
 import secrets
 import warnings
+from io import BytesIO
+from pathlib import Path
+
 from PIL import Image, UnidentifiedImageError
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024

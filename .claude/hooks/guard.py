@@ -25,7 +25,7 @@ def deny(reason: str) -> None:
 def packages(args: str) -> list[str]:
     out = []
     for tok in args.split():
-        if tok.startswith("-") or tok.startswith(".") or "/" in tok or tok.endswith(".txt"):
+        if tok.startswith(("-", ".")) or "/" in tok or tok.endswith(".txt"):
             continue
         out.append(re.split(r"[\[<>=!~@]", tok)[0].lower())
     return out

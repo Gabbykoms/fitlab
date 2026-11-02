@@ -1,5 +1,7 @@
 import sqlite3
+
 import pytest
+
 import db
 
 
@@ -37,10 +39,9 @@ def test_job_writes_are_owner_scoped_and_admission_is_bounded(tmp_path):
 def test_failed_transaction_rolls_back(tmp_path):
     path = tmp_path / 'test.db'
     db.init_db(path)
-    with pytest.raises(sqlite3.IntegrityError):
-        with db.connection(path) as conn:
-            conn.execute("INSERT INTO users(username,password_hash) VALUES ('alice','hash')")
-            conn.execute("INSERT INTO users(username,password_hash) VALUES ('ALICE','hash')")
+    with pytest.raises(sqlite3.IntegrityError), db.connection(path) as conn:
+        conn.execute("INSERT INTO users(username,password_hash) VALUES ('alice','hash')")
+        conn.execute("INSERT INTO users(username,password_hash) VALUES ('ALICE','hash')")
     assert db.get_user_by_name(path, 'alice') is None
 
 

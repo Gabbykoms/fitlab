@@ -1,12 +1,13 @@
-from fakes import run_async
 import base64
 import json
+
 import httpx
 import pytest
-from provider import OpenRouter, ProviderError
+from fakes import png, run_async
+
 from critique import critique_image
-from fakes import png
 from media import decode_url
+from provider import OpenRouter, ProviderError
 
 
 def test_provider_uses_real_pixels_and_server_only_key(monkeypatch):

@@ -583,6 +583,60 @@ available, the job fails with the generic error described in F1.
 
 ---
 
+## Test milestone — brief checklist checker (`week06-nadia`, 2026-11-01)
+
+The Test milestone for the checker is `tests/test_checker.py` plus four
+checker tests in `tests/test_backend.py`. `checker.py` compares the
+critic's `checks` array with the checklist projected from the brief
+(`critique.derive_requirements`, CRT-21) and reports `unmet`, `missing`,
+and `extra` (CRT-22). Run against the uncommitted working tree on
+`week06-nadia` (base commit `b8eed1c`).
+
+**No billed inference.** The checker tests use hand-built critiques and
+the backend tests use the fake provider in `tests/fakes.py`. No API key
+and no network access to a model provider are required.
+
+### Green run
+
+```
+python -m pytest tests -q
+127 passed, 1 warning in 73.28s (0:01:13)
+```
+
+The one warning is a Starlette `TestClient` deprecation notice, not a
+test failure.
+
+### What the new tests prove
+
+**`checker.check` — `tests/test_checker.py`.** Five tests on hand-built
+critiques. All requirements answered and met → `ok` with no problems. An
+answered-but-unmet requirement is named in `unmet` only. An unanswered
+requirement is named in `missing` only. A requirement the critic
+invented is named in `extra` only. The `problems` text names what the
+critic said and makes no claim that the image or the critic was wrong.
+A sixth test checks that `evidence/image-set/manifest.json` has five
+entries with four requirements each.
+
+**Server wiring — CRT-22, `tests/test_backend.py`.** Four tests through
+the real job path with the fake provider. A full, all-met checklist
+attaches an `ok` verdict to each option's critique. A partial checklist
+names every unanswered requirement in `missing`. A `checks` array with
+a non-object entry, and a `checks` value that is not a list, are each
+reported by the checker. In all four cases the critique has no
+`error`, the overall score stays at 85, and (in the malformed case)
+`retry_recommended` stays `false`: a missing or malformed checklist
+does not fail the critique, change the score, or trigger a retry.
+
+### How to reproduce
+
+```
+python -m pytest tests -q
+```
+
+Use the project `.venv` interpreter. Requires no API key.
+
+---
+
 ## Pending — not yet runnable
 
 The eval entry is recorded here so this ledger is honest about what has
