@@ -1,13 +1,22 @@
 """OpenRouter transport. Never propagate provider text or credentials in errors."""
+import logging
 import os
 import httpx
 
 DEFAULT_IMAGE_MODEL = 'google/gemini-3.1-flash-image'
 DEFAULT_CRITIQUE_MODEL = 'xiaomi/mimo-v2.6-flash'
+NOT_CONFIGURED = 'The styling service is not configured right now. Please try again later.'
+# 401 bad key, 402 credits too low for the request's worst-case cost, 403 key spending limit reached.
+ACCOUNT_STATUSES = (401, 402, 403)
+log = logging.getLogger('fitlab.provider')
 
 
 class ProviderError(Exception):
     pass
+
+
+class ProviderUnavailable(ProviderError):
+    """The account or key cannot be used; retrying will not help until an operator fixes it."""
 
 
 class OpenRouter:
@@ -23,19 +32,30 @@ class OpenRouter:
     async def call(self, endpoint, body):
         key = os.environ.get('OPENROUTER_API_KEY')
         if not key:
-            raise ProviderError('The styling service is not configured right now. Please try again later.')
+            raise ProviderUnavailable(NOT_CONFIGURED)
         async def send(client):
             try:
                 response = await client.post('https://openrouter.ai/api/v1/' + endpoint,
                     headers={'Authorization': f'Bearer {key}'}, json=body, timeout=120)
-                if response.status_code == 429:
-                    raise ProviderError('The image service is busy right now. Please try again in a minute.')
+            except httpx.HTTPError as exc:
+                log.warning('OpenRouter %s request failed: %s', endpoint, type(exc).__name__)
+                raise ProviderError('The styling service did not respond properly. Please try again.') from None
+            # Log the status only: response bodies can echo request details and must never be logged.
+            if response.status_code in ACCOUNT_STATUSES:
+                log.error('OpenRouter %s refused with HTTP %s; check the key, its limit and account credits',
+                          endpoint, response.status_code)
+                raise ProviderUnavailable(NOT_CONFIGURED)
+            if response.status_code == 429:
+                log.warning('OpenRouter %s rate limited (HTTP 429)', endpoint)
+                raise ProviderError('The image service is busy right now. Please try again in a minute.')
+            try:
                 response.raise_for_status()
                 result = response.json()
                 if not isinstance(result, dict) or 'error' in result:
                     raise ValueError()
                 return result
             except (httpx.HTTPError, ValueError):
+                log.warning('OpenRouter %s returned an unusable response (HTTP %s)', endpoint, response.status_code)
                 raise ProviderError('The styling service did not respond properly. Please try again.') from None
         if self.client is not None:
             return await send(self.client)

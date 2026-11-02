@@ -224,6 +224,14 @@ def test_failed_critique_is_disclosed(page: Page, server_url):
     expect(third.locator(".overall-readout")).to_have_count(0)
 
 
+def test_partial_job_says_how_many_options_are_missing(page: Page, server_url):
+    sign_up(page, server_url)
+    generate(page, occasion="game day partial")
+    expect(page.locator(".option-card")).to_have_count(1)
+    expect(page.locator("#job-status")).to_contain_text("1 of 3 options")
+    expect(page.locator("#options")).to_contain_text("2 of the 3 outfit ideas could not be drawn")
+
+
 def test_job_failure_shows_sentence_not_status(page: Page, server_url):
     sign_up(page, server_url)
     generate(page, occasion="fail please")

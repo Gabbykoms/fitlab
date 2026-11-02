@@ -10,6 +10,7 @@ Edge cases, triggered by keywords:
   occasion contains "fail"      -> the job fails
   occasion contains "unresolved"-> option A exhausts its retries
   occasion contains "nocritique"-> option C's critique fails (§7.8)
+  occasion contains "partial"   -> only option A is drawn; B and C fail
   upload label/filename "person"-> upload rejected by the people check
 """
 
@@ -202,7 +203,7 @@ def weather(event_date: date, event_time: str, city: str | None = None,
 
 def _scenario(occasion: str) -> str:
     text = occasion.lower()
-    return next((s for s in ("fail", "unresolved", "nocritique") if s in text), "normal")
+    return next((s for s in ("partial", "fail", "unresolved", "nocritique") if s in text), "normal")
 
 
 def _store_job(user_id: int, kind: str, brief: dict, weather_row: dict, options: list, error: str | None) -> str:
@@ -223,7 +224,8 @@ def generate(body: GenerateBody, request: Request):
     scenario = _scenario(body.occasion)
     has_refs = any(DB["wardrobe"].get(i, {}).get("user_id") == uid for i in body.selected_item_ids)
     options = [] if scenario == "fail" else [
-        fx.make_option(i, scenario, weather_row["available"], has_refs) for i in range(3)]
+        fx.make_option(i, scenario, weather_row["available"], has_refs)
+        for i in range(1 if scenario == "partial" else 3)]
     error = "The image service did not respond properly. Please try again." if scenario == "fail" else None
     return {"job_id": _store_job(uid, "generate", brief, weather_row, options, error), "status": "queued"}
 
