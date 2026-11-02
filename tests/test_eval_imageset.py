@@ -1,5 +1,4 @@
 """No-key tests for eval.py --imageset (spec.md 8.2): the checklist path with a fake provider."""
-import asyncio
 import io
 import json
 from pathlib import Path
@@ -10,6 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 import eval as evaluation  # noqa: E402
 from PIL import Image  # noqa: E402
+from fakes import run_async  # noqa: E402 (FitLab's helper: safe when another test left a loop running)
 
 
 
@@ -47,7 +47,7 @@ def test_imageset_checks_each_model_and_reports_disagreements(tmp_path):
     ok = '{"checks": [{"requirement": "There is a placard", "met": true}]}'
     provider = FakeProvider({('m3', 'checklist'): ok, ('m3', 'text'): 'HIIKE',
                              ('mimo', 'checklist'): 'not json at all', ('mimo', 'text'): 'HIKE'})
-    report = asyncio.run(evaluation.evaluate_imageset(make_set(tmp_path), ['m3', 'mimo'], provider))
+    report = run_async(lambda: evaluation.evaluate_imageset(make_set(tmp_path), ['m3', 'mimo'], provider))
     by_model = {r['model']: r for r in report['results']}
     assert by_model['m3']['check']['ok'] and by_model['m3']['text_matches'] is False
     assert not by_model['mimo']['check']['ok'] and by_model['mimo']['text_matches'] is True
@@ -61,7 +61,7 @@ def test_imageset_without_key_stops_before_any_call(tmp_path):
             return False
     provider = NoKey({})
     try:
-        asyncio.run(evaluation.evaluate_imageset(make_set(tmp_path), ['m3'], provider))
+        run_async(lambda: evaluation.evaluate_imageset(make_set(tmp_path), ['m3'], provider))
     except SystemExit as exc:
         assert 'OPENROUTER_API_KEY' in str(exc)
     else:
