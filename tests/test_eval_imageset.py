@@ -79,3 +79,11 @@ def test_real_provider_without_key_stops_before_any_call(tmp_path, monkeypatch):
     monkeypatch.setattr(real, 'vision', no_network)
     with pytest.raises(SystemExit, match='OPENROUTER_API_KEY'):
         run_async(lambda: evaluation.evaluate_imageset(make_set(tmp_path), ['m3'], real))
+
+
+def test_one_model_runs_without_a_comparison(tmp_path):
+    ok = '{"checks": [{"requirement": "There is a placard", "met": true}]}'
+    provider = FakeProvider({('m3', 'checklist'): ok, ('m3', 'text'): 'HIKE'})
+    report = run_async(lambda: evaluation.evaluate_imageset(make_set(tmp_path), ['m3'], provider))
+    assert report['disagreements'] == [] and report['compared_models'] == []
+    assert report['results'][0]['check']['ok'] and report['results'][0]['text_matches']
