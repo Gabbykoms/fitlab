@@ -1067,11 +1067,14 @@ When validation fails, the server does not show a partial critique. It emits thi
   "error": "invalid_response" | "provider_error" | "rate_limited" | "timeout",
   "model": "xiaomi/mimo-v2.6-flash",
   "attempt": 1,
-  "raw_excerpt": null
+  "raw_excerpt": null,
+  "checks": null
 }
 ```
 
 `raw_excerpt` is `null` in every response that reaches the client; the raw model text is logged server-side only, so a malformed or unexpected model output is never rendered in the user's browser.
+
+`checks` is `null` whenever the critique failed: no checklist verdict (CRT-22) is produced without a valid critique document.
 
 ---
 
