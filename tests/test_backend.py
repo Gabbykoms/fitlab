@@ -1,14 +1,10 @@
-import asyncio
 from datetime import date, timedelta
-import json
-from pathlib import Path
 import time
 
 import pytest
 from fastapi.testclient import TestClient
 from app import create_app
 import db
-from critique import run_option_with_retry
 from fakes import FakeProvider, fake_weather, png
 
 CREDS = {'username': 'alice', 'password': 'correct-horse-1'}

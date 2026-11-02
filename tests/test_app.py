@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parent.parent
 # Keep direct pytest invocation working without packaging the application.
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from app import COOKIE, create_app, hasher
-import db
+from app import COOKIE, create_app, hasher  # noqa: E402 (needs ROOT on sys.path)
+import db  # noqa: E402
 
 CREDS = {'username': 'test-user', 'password': 'correct-horse-1'}
 

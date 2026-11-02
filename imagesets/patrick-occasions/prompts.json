@@ -1,0 +1,62 @@
+[
+  {
+    "name": "occasion-01",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a wedding: a navy suit, white shirt, light blue tie and brown leather shoes. Beside the mannequin, a small white placard on a stand reads \"WEDDING\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 601,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears a suit jacket and a tie",
+      "There is a placard on a stand beside the mannequin",
+      "The background is a plain studio with no people in it"
+    ],
+    "expected_text": "WEDDING"
+  },
+  {
+    "name": "occasion-02",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a hike: a green rain shell jacket, a grey fleece, cargo hiking trousers and brown hiking boots, with a small backpack. Beside the mannequin, a small white placard on a stand reads \"HIKE\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 602,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears hiking boots",
+      "The mannequin wears or carries a backpack",
+      "There is a placard on a stand beside the mannequin"
+    ],
+    "expected_text": "HIKE"
+  },
+  {
+    "name": "occasion-03",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a job interview: a charcoal blazer, a white button-up shirt, black tailored trousers and black loafers. Beside the mannequin, a small white placard on a stand reads \"INTERVIEW\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 603,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears a blazer over a collared shirt",
+      "There is a placard on a stand beside the mannequin",
+      "The only text in the image is on the placard"
+    ],
+    "expected_text": "INTERVIEW"
+  },
+  {
+    "name": "occasion-04",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a football game day: a plain red hooded sweatshirt with no logos, dark jeans, white sneakers and a red knit beanie. Beside the mannequin, a small white placard on a stand reads \"GAME DAY\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 604,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears a red hooded sweatshirt",
+      "The mannequin wears a knit beanie",
+      "The only text in the image is on the placard"
+    ],
+    "expected_text": "GAME DAY"
+  },
+  {
+    "name": "occasion-05",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a day at the beach: a light linen short-sleeve shirt, sand-colored shorts, sandals and sunglasses resting on the mannequin's head. Beside the mannequin, a small white placard on a stand reads \"BEACH\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 605,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears shorts and sandals",
+      "The mannequin has sunglasses",
+      "There is a placard on a stand beside the mannequin"
+    ],
+    "expected_text": "BEACH"
+  }
+]

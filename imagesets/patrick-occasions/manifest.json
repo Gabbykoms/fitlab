@@ -1,0 +1,92 @@
+[
+  {
+    "name": "occasion-01",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a wedding: a navy suit, white shirt, light blue tie and brown leather shoes. Beside the mannequin, a small white placard on a stand reads \"WEDDING\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 601,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears a suit jacket and a tie",
+      "There is a placard on a stand beside the mannequin",
+      "The background is a plain studio with no people in it"
+    ],
+    "expected_text": "WEDDING",
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "3:4",
+    "file": "occasion-01.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.015,
+    "seconds": 11.0
+  },
+  {
+    "name": "occasion-02",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a hike: a green rain shell jacket, a grey fleece, cargo hiking trousers and brown hiking boots, with a small backpack. Beside the mannequin, a small white placard on a stand reads \"HIKE\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 602,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears hiking boots",
+      "The mannequin wears or carries a backpack",
+      "There is a placard on a stand beside the mannequin"
+    ],
+    "expected_text": "HIKE",
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "3:4",
+    "file": "occasion-02.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.015,
+    "seconds": 3.9
+  },
+  {
+    "name": "occasion-03",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a job interview: a charcoal blazer, a white button-up shirt, black tailored trousers and black loafers. Beside the mannequin, a small white placard on a stand reads \"INTERVIEW\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 603,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears a blazer over a collared shirt",
+      "There is a placard on a stand beside the mannequin",
+      "The only text in the image is on the placard"
+    ],
+    "expected_text": "INTERVIEW",
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "3:4",
+    "file": "occasion-03.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.015,
+    "seconds": 3.8
+  },
+  {
+    "name": "occasion-04",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a football game day: a plain red hooded sweatshirt with no logos, dark jeans, white sneakers and a red knit beanie. Beside the mannequin, a small white placard on a stand reads \"GAME DAY\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 604,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears a red hooded sweatshirt",
+      "The mannequin wears a knit beanie",
+      "The only text in the image is on the placard"
+    ],
+    "expected_text": "GAME DAY",
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "3:4",
+    "file": "occasion-04.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.015,
+    "seconds": 9.3
+  },
+  {
+    "name": "occasion-05",
+    "prompt": "Fashion catalog photograph of a faceless smooth grey display mannequin standing in a plain light-grey studio, dressed for a day at the beach: a light linen short-sleeve shirt, sand-colored shorts, sandals and sunglasses resting on the mannequin's head. Beside the mannequin, a small white placard on a stand reads \"BEACH\" in bold black capital letters. Soft even lighting, no people, no other text.",
+    "seed": 605,
+    "requirements": [
+      "There is a faceless display mannequin, not a real person",
+      "The mannequin wears shorts and sandals",
+      "The mannequin has sunglasses",
+      "There is a placard on a stand beside the mannequin"
+    ],
+    "expected_text": "BEACH",
+    "model": "black-forest-labs/flux.2-klein-4b",
+    "aspect_ratio": "3:4",
+    "file": "occasion-05.jpg",
+    "media_type": "image/jpeg",
+    "cost": 0.015,
+    "seconds": 10.3
+  }
+]
