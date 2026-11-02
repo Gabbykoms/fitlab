@@ -66,3 +66,16 @@ def test_imageset_without_key_stops_before_any_call(tmp_path):
     with pytest.raises(SystemExit, match='OPENROUTER_API_KEY'):
         run_async(lambda: evaluation.evaluate_imageset(make_set(tmp_path), ['m3'], provider))
     assert provider.calls == []
+
+
+def test_real_provider_without_key_stops_before_any_call(tmp_path, monkeypatch):
+    """H-1 with the real provider class: no key means configured() is False and nothing is sent."""
+    monkeypatch.delenv('OPENROUTER_API_KEY', raising=False)
+    real = evaluation.OpenRouter()
+    assert real.configured() is False
+
+    async def no_network(*args, **kwargs):
+        raise AssertionError('a vision call was made without a key')
+    monkeypatch.setattr(real, 'vision', no_network)
+    with pytest.raises(SystemExit, match='OPENROUTER_API_KEY'):
+        run_async(lambda: evaluation.evaluate_imageset(make_set(tmp_path), ['m3'], real))
